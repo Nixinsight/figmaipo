@@ -1,0 +1,1877 @@
+<html lang="zh-TW"><head><script>(function(firebaseConfig, initialAuthToken, appId) {
+        window.__firebase_config = firebaseConfig;
+        window.__initial_auth_token = initialAuthToken;
+        window.__app_id = appId;
+            })("\n{\n  \"apiKey\": \"AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY\",\n  \"authDomain\": \"bard-frontend.firebaseapp.com\",\n  \"projectId\": \"bard-frontend\",\n  \"storageBucket\": \"bard-frontend.firebasestorage.app\",\n  \"messagingSenderId\": \"175205271074\",\n  \"appId\": \"1:175205271074:web:2b7bd4d34d33bf38e6ec7b\"\n}\n","eyJhbGciOiJSUzI1NiIsImtpZCI6IjliNTYzZWFkZTM5OGI3ZWRjOTg2YThhYjM3YzNlMTY3ZjgyOGRhZGUiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BiYXJkLWZyb250ZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6XC9cL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbVwvZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJ1aWQiOiIwOTI5MzQwNjg0NDE3NTMxNDgyMyIsImlzcyI6ImZpcmViYXNlLWFkbWluc2RrLWZic3ZjQGJhcmQtZnJvbnRlbmQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJjbGFpbXMiOnsiYXBwSWQiOiJjXzI3Y2JiMjY1ZDgyZGQ3ODVfZmlnbWEtaXBvLXNwYS05NDg1Ny04NDMifSwiZXhwIjoxNzUzNzI2NjA5LCJpYXQiOjE3NTM3MjMwMDksImFsZyI6IlJTMjU2In0.DWRBSSABq3oaGjryWeOCKVWGTAUbAoyN4Lar2iNIxzUKI4sDEKUZavjTffRkI34l3x4v-Wq_D_CeS37UwzqDIGuryNkrtlViFWhNMAjN7n74bZMUrw2WCc3uopltVWCUNI8hsi71hfto7kfbX8gfuQw_htE1JT-bFRxPyF9ViKjZzNTA_PJdbBAwI3XHd-XFDyUYtEulJ7gIgVfWMhFgM9gfBs0wq5yLovjmYtccwmqUSN6Z77LBKdy5VtugKCT4bFTMnMoRLqo7osI_bqTsuApnPRjW6v-aU63NKqE0i-djxCSZumXdrUPdm2WSLZu-exjDfWO46pCCzpSYj46QOg","c_27cbb265d82dd785_figma-ipo-spa-94857-843")</script><script>(function() {
+  // Ensure this script is executed only once
+  if (window.firebaseAuthBridgeScriptLoaded) {
+    return;
+  }
+  window.firebaseAuthBridgeScriptLoaded = true;
+
+  let nextTokenPromiseId = 0;
+
+  // Stores { resolve, reject } for ongoing token requests
+  const pendingTokenPromises = {};
+
+  // Listen for messages from the Host Application
+  window.addEventListener('message', function(event) {
+
+    const messageData = event.data;
+
+  if (messageData && messageData.type === 'RESOLVE_NEW_FIREBASE_TOKEN') {
+      const { success, token, error, promiseId } = messageData ?? {};
+      if (pendingTokenPromises[promiseId]) {
+        if (success) {
+          pendingTokenPromises[promiseId].resolve(token);
+        } else {
+          pendingTokenPromises[promiseId].reject(new Error(error || 'Token refresh failed from host.'));
+        }
+        delete pendingTokenPromises[promiseId];
+      }
+    }
+  });
+
+  // Expose a function for the Generated App to request a new Firebase token
+  window.requestNewFirebaseToken = function() {
+    const currentPromiseId = nextTokenPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingTokenPromises[currentPromiseId] = { resolve, reject };
+    });
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: 'REQUEST_NEW_FIREBASE_TOKEN',
+        promiseId: currentPromiseId
+      }, '*');
+    } else {
+      pendingTokenPromises[currentPromiseId].reject(new Error('No parent window to request token from.'));
+      delete pendingTokenPromises[currentPromiseId];
+    }
+    return promise;
+  };
+})();</script><script>
+let realOriginalGetUserMedia = null;
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  realOriginalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+}
+
+(function() {
+  if (navigator.mediaDevices && navigator.mediaDevices.__proto__) {
+    try {
+      Object.defineProperty(navigator.mediaDevices.__proto__, 'getUserMedia', {
+        get: function() {
+          return undefined; // Or throw an error
+        },
+        configurable: false
+      });
+    } catch (error) {
+      console.error("Error defining prototype getter:", error);
+    }
+  }
+})();
+
+(function() {
+  const pendingMediaResolvers = {};
+  let nextMediaPromiseId = 0;
+
+  function requestMediaPermissions(constraints) {
+    const mediaPromiseId = nextMediaPromiseId++;
+    const promise = new Promise((resolve, reject) => {
+      pendingMediaResolvers[mediaPromiseId] = (granted) => {
+        delete pendingMediaResolvers[mediaPromiseId];
+        resolve(granted);
+      };
+    });
+
+    window.parent.postMessage({
+      type: 'requestMediaPermission',
+      constraints: constraints,
+      promiseId: mediaPromiseId,
+    }, '*');
+
+    return promise;
+  }
+
+  let originalGetUserMedia = realOriginalGetUserMedia;
+
+  function interceptGetUserMedia() {
+    if (navigator.mediaDevices) {
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+        value: function(constraints) {
+          return requestMediaPermissions(constraints).then((granted) => {
+            if (granted) {
+              if (originalGetUserMedia) {
+                return originalGetUserMedia(constraints);
+              } else {
+                throw new Error("Original getUserMedia not available.");
+              }
+            } else {
+              throw new DOMException('Permission denied', 'NotAllowedError');
+            }
+          });
+        },
+        writable: false,
+        configurable: false
+      });
+    }
+  }
+
+  interceptGetUserMedia();
+
+  const observer = new MutationObserver(function(mutationsList, observer) {
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'reconfigured' && mutation.name === 'getUserMedia' && mutation.object === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'attributes' && mutation.attributeName === 'getUserMedia' && mutation.target === navigator.mediaDevices) {
+        interceptGetUserMedia();
+      } else if (mutation.type === 'childList' && mutation.addedNodes) {
+        mutation.addedNodes.forEach(node => {
+          if (node === navigator.mediaDevices) {
+            interceptGetUserMedia();
+          }
+        });
+      }
+    }
+  });
+
+  function interceptSpeechRecognition() {
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+      return;
+    }
+
+    const OriginalSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const SpeechRecognitionWrapper = function(...args) {
+      const recognizer = new OriginalSpeechRecognition(...args);
+      const originalStart = recognizer.start.bind(recognizer);
+
+      recognizer.start = function() {
+        requestMediaPermissions({ audio: true }).then(granted => {
+          if (granted) {
+            originalStart();
+          } else {
+            const errorEvent = new SpeechRecognitionErrorEvent('error');
+            errorEvent.error = 'not-allowed'; // This is the standard error for permission denial.
+            recognizer.dispatchEvent(errorEvent);
+          }
+        });
+      };
+
+      return recognizer;
+    };
+
+    SpeechRecognitionWrapper.prototype = OriginalSpeechRecognition.prototype;
+    SpeechRecognitionWrapper.prototype.constructor = SpeechRecognitionWrapper;
+
+    if (window.SpeechRecognition) {
+      window.SpeechRecognition = SpeechRecognitionWrapper;
+    }
+    if (window.webkitSpeechRecognition) {
+      window.webkitSpeechRecognition = SpeechRecognitionWrapper;
+    }
+  }
+
+  interceptSpeechRecognition();
+
+  window.addEventListener('message', function(event) {
+    if (event.data) {
+      if (event.data.type === 'resolveMediaPermission') {
+        const { promiseId, granted } = event.data;
+        if (pendingMediaResolvers[promiseId]) {
+          pendingMediaResolvers[promiseId](granted);
+        }
+      }
+    }
+  });
+
+})();</script><script>((function(modelInformation) {
+  const originalFetch = window.fetch;
+  // TODO: b/421908508 - Move these out of the script and match all generative AI model calls.
+  let googleLlmBaseApiUrls = [
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':streamGenerateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageEditModelName + ':generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predict',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predictLongRunning',
+    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.ttsModelName + ':generateContent',
+  ];
+  modelInformation.deprecatedTextModelNames.forEach((modelName) => {
+    googleLlmBaseApiUrls.push(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
+    );
+  });
+
+  const pendingFetchResolvers = {};
+  let nextPromiseId = 0;
+
+  function handleStringInput(input, optionsArgument) {
+    const actualUrl = input;
+    const fetchCallArgs = [actualUrl, optionsArgument];
+    const effectiveOptions = optionsArgument || {};
+    const bodyForApiKeyCheck = effectiveOptions.body;
+    const bodyForPostMessage = effectiveOptions.body;
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  function handleRequestInput(input, optionsArgument) {
+    const actualUrl = input.url;
+    const fetchCallArgs = [input, optionsArgument];
+    const effectiveOptions = { method: input.method, headers: new Headers(input.headers) };
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (optionsArgument) {
+      if (optionsArgument.method) effectiveOptions.method = optionsArgument.method;
+      if (optionsArgument.headers) effectiveOptions.headers = new Headers(optionsArgument.headers);
+      if ('body' in optionsArgument) {
+        bodyForApiKeyCheck = optionsArgument.body;
+        bodyForPostMessage = optionsArgument.body;
+      } else {
+        bodyForApiKeyCheck = undefined;
+        bodyForPostMessage = input.body;
+      }
+    } else {
+      bodyForApiKeyCheck = undefined;
+      bodyForPostMessage = input.body;
+    }
+    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
+  }
+
+  window.fetch = function(input, optionsArgument) {
+    let actualUrl;
+    let fetchCallArgs;
+    let effectiveOptions = {};
+    let bodyForApiKeyCheck;
+    let bodyForPostMessage;
+
+    if (typeof input === 'string') {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleStringInput(input, optionsArgument));
+    } else if (input instanceof Request) {
+      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleRequestInput(input, optionsArgument));
+    } else {
+      return originalFetch.apply(window, [input, optionsArgument]);
+    }
+
+    effectiveOptions.method = effectiveOptions.method || 'GET';
+    if (!effectiveOptions.headers) {
+      effectiveOptions.headers = new Headers();
+    }
+
+
+    if (typeof actualUrl === 'string' && googleLlmBaseApiUrls.some((url) => actualUrl.startsWith(url))) {
+      let apiKeyIsNull = true;
+
+      const regex = new RegExp("models/([^:]+)");
+      const modelNameMatch = actualUrl.match(regex);
+      const modelName = modelNameMatch ? modelNameMatch[1] : 'unspecified';
+
+
+      try {
+        const urlObject = new URL(actualUrl);  // Use URL object for robust parsing
+        const apiKeyParam = urlObject.searchParams.get('key');
+        if (apiKeyParam) {
+          apiKeyIsNull = false;
+        }
+      } catch (e) {
+        // Continue checks even if URL parsing fails
+      }
+
+      if (apiKeyIsNull && effectiveOptions.headers) {
+        const h = new Headers(effectiveOptions.headers);
+        const apiKeyHeaderValue = h.get('X-API-Key') || h.get('x-api-key');
+        if (apiKeyHeaderValue) {
+          apiKeyIsNull = false;
+          return originalFetch.apply(window, fetchCallArgs);
+        }
+      }
+
+      if (apiKeyIsNull && effectiveOptions.method && ['POST', 'PUT', 'PATCH'].includes(effectiveOptions.method.toUpperCase()) && typeof bodyForApiKeyCheck === 'string') {
+        try {
+          const bodyData = JSON.parse(bodyForApiKeyCheck);
+          if (bodyData && bodyData.apiKey) {
+            apiKeyIsNull = false;
+            return originalFetch.apply(window, fetchCallArgs);
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      if(apiKeyIsNull) {
+        const promiseId = nextPromiseId++;
+        const promise = new Promise((resolve) => {
+          pendingFetchResolvers[promiseId] = (resolvedResponse) => {
+            delete pendingFetchResolvers[promiseId];
+            resolve(resolvedResponse);
+          };
+        });
+
+        let serializedBodyForPostMessage;
+        if (typeof bodyForPostMessage === 'string' || bodyForPostMessage == null) {
+            serializedBodyForPostMessage = bodyForPostMessage;
+        } else if (bodyForPostMessage instanceof ReadableStream) {
+            serializedBodyForPostMessage = null;
+        } else {
+            try {
+                serializedBodyForPostMessage = JSON.stringify(bodyForPostMessage);
+            } catch (e) {
+                serializedBodyForPostMessage = null;
+            }
+        }
+
+        const messageOptions = {
+            method: effectiveOptions.method,
+            headers: Object.fromEntries(new Headers(effectiveOptions.headers).entries()),
+            body: serializedBodyForPostMessage
+        };
+
+        window.parent.postMessage({
+          type: 'requestFetch',
+          url: actualUrl,
+          modelName: modelName,
+          options: messageOptions,
+          promiseId: promiseId,
+        }, '*');
+
+        return promise;
+      }
+      return originalFetch.apply(window, fetchCallArgs);
+    }
+    return originalFetch.apply(window, fetchCallArgs);
+  };
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'resolveFetch') {
+      const { promiseId, response } = event.data;
+      if (pendingFetchResolvers[promiseId]) {
+        try {
+          const reconstructedResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: new Headers(response.headers),
+          });
+          pendingFetchResolvers[promiseId](reconstructedResponse);
+        } catch (error) {
+          pendingFetchResolvers[promiseId](new Response(null, { status: 500, statusText: "Interceptor Response Reconstruction Error" }));
+        }
+      }
+    }
+  });
+
+}))({"textModelName":"gemini-2.5-flash-preview-05-20","imageModelName":"imagen-3.0-generate-002","imageEditModelName":"gemini-2.0-flash-preview-image-generation","videoModelName":"veo-2.0-generate-001","ttsModelName":"gemini-2.5-flash-preview-tts","deprecatedTextModelNames":["gemini-2.0-flash","gemini-2.5-flash-preview-04-17"]})</script><script>(function() {
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+    /**
+   * Normalizes an error event or a promise rejection reason into a structured error object.
+   * @param {*} errorEventOrReason The error object or reason.
+   * @return {object} Structured error data { message, name, stack }.
+   */
+  function getErrorObject(errorEventOrReason) {
+    if (errorEventOrReason instanceof Error) {
+      return {
+        message: errorEventOrReason.message,
+        name: errorEventOrReason.name,
+        stack: errorEventOrReason.stack,
+      };
+    }
+    // Fallback for non-Error objects.
+    try {
+      return {
+        message: JSON.stringify(errorEventOrReason),
+        name: 'UnknownErrorType',
+        stack: null,
+      };
+    } catch (e) {
+      return {
+        message: String(errorEventOrReason),
+        name: 'UnknownErrorTypeNonStringifiable',
+        stack: null,
+      };
+    }
+  }
+
+  /**
+   * Converts an array of arguments (from log/error) into a single string.
+   * Handles Error objects specially to include their message and stack.
+   * @param {Array<*>} args - Arguments passed to console methods.
+   * @return {string} A string representation of the arguments.
+   */
+  function stringifyArgs(args) {
+    return args
+      .map((arg) => {
+        if (arg instanceof Error) {
+          const {message, stack} = arg;
+          return `Error: ${message}${stack ? ('\nStack: ' + stack) : ''}`;
+        }
+        if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch (error) {
+            return '[Circular Object]';
+          }
+        } else {
+          return String(arg);
+        }
+      })
+      .join(' ');
+  }
+
+  console.log = function(...args) {
+    const logString = stringifyArgs(args);
+    window.parent.postMessage({ type: 'log', message: logString }, '*');
+    originalConsoleLog.apply(console, args);
+  };
+
+  console.error = function(...args) {
+    let errorData;
+    if (args.length > 0 && args[0] instanceof Error) {
+      const err = args[0];
+      // If the first arg is an Error, capture its details.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        ...getErrorObject(err),
+        rawArgsString: stringifyArgs(args.slice(1)),
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      // If not an Error object, treat all args as a general error message.
+      errorData = {
+        type: 'error',
+        source: 'CONSOLE_ERROR',
+        message: stringifyArgs(args),
+        name: 'ConsoleLoggedError',
+        stack: null,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    window.parent.postMessage(errorData, '*');
+    originalConsoleError.apply(console, args);
+  };
+
+  // Listen for global unhandled synchronous errors.
+  window.addEventListener('error', function(event) {
+    const errorDetails = event.error ? getErrorObject(event.error) : {
+      message: event.message,
+      name: 'GlobalError',
+      stack: null,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    };
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'global',
+      ...errorDetails,
+      message: errorDetails.message || event.message,
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+  // Listen for unhandled promise rejections (asynchronous errors).
+  window.addEventListener('unhandledrejection', function(event) {
+    const errorDetails = getErrorObject(event.reason);
+
+    window.parent.postMessage({
+      type: 'error',
+      source: 'unhandledrejection',
+      ...errorDetails,
+      message: errorDetails.message || 'Unhandled Promise Rejection',
+      timestamp: new Date().toISOString(),
+    }, '*');
+  });
+
+})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Figma IPO 深度投資分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #FDFBF8;
+            color: #383838;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #D97706; /* Amber-600 */
+            border-bottom-color: #D97706;
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(249, 115, 22, 0.1));
+        }
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #F3F4F6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .ipo-table th, .ipo-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E5E7EB; /* Gray-200 */
+            text-align: left;
+        }
+        .ipo-table th {
+            background-color: #F9FAFB; /* Gray-50 */
+            font-weight: 600;
+            color: #4B5563; /* Gray-700 */
+        }
+        .ipo-table tr:last-child td {
+            border-bottom: none;
+        }
+        .download-button {
+            @apply px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200;
+            @apply bg-amber-500 text-white hover:bg-amber-600;
+        }
+    </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.-left-2{left:-0.5rem}.top-0{top:0px}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.mb-10{margin-bottom:2.5rem}.mb-12{margin-bottom:3rem}.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mr-3{margin-right:0.75rem}.mt-1{margin-top:0.25rem}.mt-1\.5{margin-top:0.375rem}.mt-12{margin-top:3rem}.mt-16{margin-top:4rem}.mt-2{margin-top:0.5rem}.mt-20{margin-top:5rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-4{height:1rem}.w-4{width:1rem}.min-w-full{min-width:100%}.max-w-2xl{max-width:42rem}.max-w-3xl{max-width:48rem}.max-w-4xl{max-width:56rem}.flex-1{flex:1 1 0%}.list-inside{list-style-position:inside}.list-disc{list-style-type:disc}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-12{gap:3rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.space-x-4 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1rem * var(--tw-space-x-reverse));margin-left:calc(1rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-8 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(2rem * var(--tw-space-x-reverse));margin-left:calc(2rem * calc(1 - var(--tw-space-x-reverse)))}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-gray-200 > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(229 231 235 / var(--tw-divide-opacity, 1))}.whitespace-nowrap{white-space:nowrap}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-4{border-width:4px}.border-l-2{border-left-width:2px}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.border-white{--tw-border-opacity:1;border-color:rgb(255 255 255 / var(--tw-border-opacity, 1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11 / var(--tw-bg-opacity, 1))}.bg-blue-50\/50{background-color:rgb(239 246 255 / 0.5)}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-gray-800{--tw-bg-opacity:1;background-color:rgb(31 41 55 / var(--tw-bg-opacity, 1))}.bg-green-50\/50{background-color:rgb(240 253 244 / 0.5)}.bg-red-50\/50{background-color:rgb(254 242 242 / 0.5)}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/50{background-color:rgb(255 255 255 / 0.5)}.bg-white\/80{background-color:rgb(255 255 255 / 0.8)}.bg-yellow-50\/50{background-color:rgb(254 252 232 / 0.5)}.p-2{padding:0.5rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-16{padding-top:4rem;padding-bottom:4rem}.py-20{padding-top:5rem;padding-bottom:5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.pl-8{padding-left:2rem}.text-left{text-align:left}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.leading-tight{line-height:1.25}.tracking-wider{letter-spacing:0.05em}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36 / var(--tw-text-opacity, 1))}.text-amber-500{--tw-text-opacity:1;color:rgb(245 158 11 / var(--tw-text-opacity, 1))}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39 / var(--tw-text-opacity, 1))}.text-green-500{--tw-text-opacity:1;color:rgb(34 197 94 / var(--tw-text-opacity, 1))}.text-green-700{--tw-text-opacity:1;color:rgb(21 128 61 / var(--tw-text-opacity, 1))}.text-red-700{--tw-text-opacity:1;color:rgb(185 28 28 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-yellow-700{--tw-text-opacity:1;color:rgb(161 98 7 / var(--tw-text-opacity, 1))}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.hover\:underline:hover{-webkit-text-decoration-line:underline;text-decoration-line:underline}@media (min-width: 768px){.md\:col-span-2{grid-column:span 2 / span 2}.md\:flex{display:flex}.md\:hidden{display:none}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:space-x-8 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(2rem * var(--tw-space-x-reverse));margin-left:calc(2rem * calc(1 - var(--tw-space-x-reverse)))}.md\:space-y-0 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0px * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0px * var(--tw-space-y-reverse))}.md\:py-24{padding-top:6rem;padding-bottom:6rem}.md\:py-32{padding-top:8rem;padding-bottom:8rem}.md\:text-4xl{font-size:2.25rem;line-height:2.5rem}.md\:text-6xl{font-size:3.75rem;line-height:1}.md\:text-xl{font-size:1.25rem;line-height:1.75rem}}@media (min-width: 1024px){.lg\:col-span-2{grid-column:span 2 / span 2}.lg\:col-span-3{grid-column:span 3 / span 3}.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.lg\:grid-cols-5{grid-template-columns:repeat(5, minmax(0, 1fr))}}</style></head>
+<body class="antialiased">
+
+    <header id="navbar" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-gray-800">
+                Figma<span class="text-amber-600">.</span>IPO
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex space-x-8">
+                    <a href="#overview" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#tech" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#business" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#financials" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#market" class="nav-link font-medium text-gray-600 active"></a>
+                    <a href="#ai" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#swot" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#risks" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#ai-stocks" class="nav-link font-medium text-gray-600"></a>
+                    <a href="#valuation" class="nav-link font-medium text-gray-600"></a>
+                </div>
+                <button id="downloadHtmlBtn" class="download-button">下載報告</button>
+            </div>
+            <div class="md:hidden">
+                <select id="mobile-nav" class="bg-white border border-gray-300 rounded-md p-2 text-gray-700">
+                    <option value="#overview">公司概覽</option>
+                    <option value="#tech">產品技術</option>
+                    <option value="#business">商業模式</option>
+                    <option value="#financials">財務表現</option>
+                    <option value="#market">市場競爭</option>
+                    <option value="#ai">AI 戰略</option>
+                    <option value="#swot">戰略分析</option>
+                    <option value="#risks">投資風險</option>
+                    <option value="#ai-stocks">AI 軟體股</option>
+                    <option value="#valuation">投資價值</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="py-20 md:py-32 hero-gradient">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-800 leading-tight" id="heroTitle">深度剖析 Figma：設計界超級獨角獸的 IPO 之路</h1>
+                <p class="mt-6 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto" id="heroDescription">一家即將上市、改變全球設計行業格局的公司。從輟學創業到百億估值，Figma 的商業模式、技術優勢和未來潛力全方位解讀。</p>
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    <div class="bg-white/50 p-6 rounded-xl shadow-md">
+                        <p class="text-3xl font-bold text-amber-600">$150億</p>
+                        <p class="mt-2 text-gray-700" id="heroCurrentValuation">當前估值</p>
+                    </div>
+                    <div class="bg-white/50 p-6 rounded-xl shadow-md">
+                        <p class="text-3xl font-bold text-amber-600">&gt;200%</p>
+                        <p class="mt-2 text-gray-700" id="heroGrowthRate">年複合增長率 (2019-2024)</p>
+                    </div>
+                    <div class="bg-white/50 p-6 rounded-xl shadow-md">
+                        <p class="text-3xl font-bold text-amber-600">95%</p>
+                        <p class="mt-2 text-gray-700" id="heroFortune500">財富500強企業使用</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="overview" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="overviewSectionTitle">公司概覽：從一個問題到行業顛覆者</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="overviewSectionDescription">兩位92後輟學生的遠見，解決了設計師長久以來的協作痛點，開啟了雲端設計的新紀元。</p>
+                </div>
+                <div class="max-w-4xl mx-auto">
+                    <div class="relative pl-8 border-l-2 border-gray-200">
+                        <div class="mb-10 card p-6 rounded-lg">
+                            <div class="absolute w-4 h-4 bg-amber-500 rounded-full -left-2 mt-1.5 border-4 border-white"></div>
+                            <p class="text-sm font-medium text-amber-600">2011年</p>
+                            <h3 class="mt-2 text-xl font-semibold text-gray-800" id="overviewTimeline1Title">一個想法的誕生</h3>
+                            <p class="mt-2 text-gray-600" id="overviewTimeline1Desc">在布朗大學，Dylan Field 和 Evan Wallace 思考：為什麼設計師不能像程式設計師使用 Git 一樣進行高效協作？當時的設計師仍依賴單機軟體和郵件傳輸文件，效率低下且錯誤頻發。</p>
+                        </div>
+                        <div class="mb-10 card p-6 rounded-lg">
+                            <div class="absolute w-4 h-4 bg-amber-500 rounded-full -left-2 mt-1.5 border-4 border-white"></div>
+                            <p class="text-sm font-medium text-amber-600">2012年</p>
+                            <h3 class="mt-2 text-xl font-semibold text-gray-800" id="overviewTimeline2Title">輟學創業</h3>
+                            <p class="mt-2 text-gray-600" id="overviewTimeline2Desc">Dylan Field 做出大膽決定，從布朗大學退學，專心將雲端協作設計工具的想法變為現實，他們意識到這是一個巨大的市場機會。</p>
+                        </div>
+                        <div class="mb-10 card p-6 rounded-lg">
+                            <div class="absolute w-4 h-4 bg-amber-500 rounded-full -left-2 mt-1.5 border-4 border-white"></div>
+                            <p class="text-sm font-medium text-amber-600">2016年9月27日</p>
+                            <h3 class="mt-2 text-xl font-semibold text-gray-800" id="overviewTimeline3Title">Figma 正式發布</h3>
+                            <p class="mt-2 text-gray-600" id="overviewTimeline3Desc">經過四年精心打磨，Figma 1.0 正式上線。這是一個真正意義上的雲端原生設計工具，徹底改變了設計師的工作方式。</p>
+                        </div>
+                        <div class="card p-6 rounded-lg">
+                            <div class="absolute w-4 h-4 bg-amber-500 rounded-full -left-2 mt-1.5 border-4 border-white"></div>
+                            <p class="text-sm font-medium text-amber-600">2025年</p>
+                            <h3 class="mt-2 text-xl font-semibold text-gray-800" id="overviewTimeline4Title">即將 IPO</h3>
+                            <p class="mt-2 text-gray-600" id="overviewTimeline4Desc">在 Adobe 200億美元收購案被監管阻止後，Figma 選擇獨立上市，有望成為史上估值最高的設計軟體公司，開啟新的篇章。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-20 text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="ipoDetailsTitle">IPO 詳細資訊</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="ipoDetailsDescription">Figma 首次公開募股的關鍵數據，幫助您全面了解本次上市的具體條款。有觀點稱，Figma 的上市可能會超過年初的雲計算平台 CoreWeave，成為 2025 年最大科技 IPO 的黑馬。</p>
+                </div>
+                <div class="table-container max-w-4xl mx-auto bg-white rounded-lg shadow-md">
+                    <table class="min-w-full ipo-table">
+                        <thead>
+                            <tr>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="ipoTableHeader1">項目</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" id="ipoTableHeader2">詳細資訊</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem1">股票代碼</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">FIG</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem2">上市交易所</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">紐約證券交易所 (NYSE)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem3">擬定發行價格區間</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">$25 - $28 每股</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem4">目標估值 (完全稀釋)</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">$146億 - $164億美元 (中間價約 $159億美元)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem5">發行股份總數</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">約 3700萬股</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem6">公司出售股份</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">約 1247萬股</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem7">現有股東出售股份</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">約 2446萬股</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem8">預計募資總額</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">最高可達 $10億美元</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem9">預計上市日期</td>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm text-gray-700">2025年7月31日 (週四)</td>
+                            </tr>
+                            <tr>
+                                <td class="py-4 px-4 whitespace-nowrap text-sm font-medium text-gray-900" id="ipoItem10">主要承銷商</td>
+                                <td class="py-4 px-4 text-sm text-gray-700">摩根士丹利、高盛、Allen &amp; Company、摩根大通、美銀證券、富國銀行證券、加拿大皇家銀行資本市場</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-20 text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="majorShareholdersTitle">主要股東與投資者信心</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="majorShareholdersDescription">Figma 獲得了多家頂級風投機構的青睞，其豪華股東陣容彰顯了市場對其未來潛力的強大信心。</p>
+                </div>
+                <div class="max-w-4xl mx-auto bg-gray-50 p-8 rounded-xl shadow-md">
+                    <p class="text-gray-700 leading-relaxed mb-4">自 2012 年成立以來，Figma 共完成過 8 輪公開融資，多數硅谷頂級風投機構都曾參與其中。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">主要外部股東 (上市前持股比例)</h4>
+                            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                                <li><strong>Index Ventures：</strong>17%</li>
+                                <li><strong>Greylock：</strong>16%</li>
+                                <li><strong>Kleiner Perkins：</strong>14%</li>
+                                <li><strong>紅杉資本 (Sequoia)：</strong>8.7%</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800 mb-2">投資者信心與市場預期</h4>
+                            <p class="text-gray-700">豪華的股東陣容不僅為 Figma 提供了充足的資金支持，也向市場傳達了強烈的信心信號。投資者普遍期望 Figma 的上市能像今年早些時候的 Circle 等獨角獸一樣，帶動 AI 軟體股的整體表現。</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="mt-20 text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="auctionIPOTitle">「拍賣式IPO」：市場定價的新嘗試</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="auctionIPODescription">Figma 本次上市採用「拍賣式IPO」，旨在讓市場供需決定最終發行價格，這與傳統 IPO 有何不同？</p>
+                </div>
+                <div class="max-w-4xl mx-auto bg-gray-50 p-8 rounded-xl shadow-md">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4" id="whatIsAuctionIPOTitle">什麼是「拍賣式IPO」（荷蘭式拍賣）？</h3>
+                    <p class="text-gray-700 leading-relaxed" id="whatIsAuctionIPODesc">「拍賣式IPO」是一種首次公開發行股票（IPO）的定價方式，其核心思想是讓投資者透過公開競價來決定股票的最終發行價格，而非由投行主導。這種方式希望更準確地反映市場對股票價值的判斷，並可能減少抑價現象，使發行人和投資者都能受益。在這種模式下，公司值多少錢是由投資者自己決定的，而不是由投資銀行家來確定投資者可能願意為股票支付的價格。Figma 要求投資者提交限價訂單，正是為了獲取更精確的股票估值信息，捕捉更多隱藏的投資熱情。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                        <div>
+                            <h4 class="text-xl font-semibold text-green-700 mb-2" id="auctionIPOAadvantagesTitle">優點 ✅</h4>
+                            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                                <li id="auctionIPOAadvantages1"><strong>更準確的定價：</strong>價格由市場供需決定，更接近股票的真實價值。</li>
+                                <li id="auctionIPOAadvantages2"><strong>減少抑價：</strong>有助於減少傳統IPO中可能存在的抑價現象，使公司能以更合理價格募集資金。</li>
+                                <li id="auctionIPOAadvantages3"><strong>提高透明度：</strong>整個拍賣過程更加公開透明，減少了人為操縱的可能性。</li>
+                                <li id="auctionIPOAadvantages4"><strong>吸引長期投資者：</strong>有助於篩選出真正認可公司長期價值、願意出價的投資人。</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-red-700 mb-2" id="auctionIPODisadvantagesTitle">缺點 ❌</h4>
+                            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                                <li id="auctionIPODisadvantages1"><strong>「贏家的詛咒」：</strong>當早先出價更高的投資者意識到他們可能計算錯誤或出價過高時，股票價格可能在上市後立即暴跌。</li>
+                                <li id="auctionIPODisadvantages2"><strong>市場接受度：</strong>相較傳統IPO，市場對拍賣式IPO的接受度和熟悉度可能較低。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tech" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="techSectionTitle">產品與技術：Figma 的硬核實力</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="techSectionDescription">表面是設計工具，內核是複雜且創新的技術架構，這構成了 Figma 難以被超越的護城河。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div class="card p-6 rounded-lg text-center">
+                        <div class="text-4xl mb-4">🚀</div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="techCard1Title">雲端原生協作</h3>
+                        <p class="mt-2 text-gray-600" id="techCard1Desc">完全基於瀏覽器，無需安裝。採用 Operational Transformation 技術，實現了複雜圖形環境下的高難度實時協作。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg text-center">
+                        <div class="text-4xl mb-4">⚡️</div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="techCard2Title">極致性能優化</h3>
+                        <p class="mt-2 text-gray-600" id="techCard2Desc">利用 WebAssembly 處理複雜圖形運算，結合虛擬化技術處理大型文件，性能媲美甚至超越本地應用。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg text-center">
+                        <div class="text-4xl mb-4">💻</div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="techCard3Title">全平台兼容</h3>
+                        <p class="mt-2 text-gray-600" id="techCard3Desc">基於 Web 技術，天然支持 Windows, Mac, Linux 等所有主流操作系統，對企業用戶極具吸引力。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg text-center">
+                        <div class="text-4xl mb-4">🧩</div>
+                        <h3 class="text-xl font-semibold text-gray-800" id="techCard4Title">強大插件生態</h3>
+                        <p class="mt-2 text-gray-600" id="techCard4Desc">開放的插件系統，允許開發者擴展功能，形成了類似蘋果 App Store 的生態，極大提高了用戶粘性。</p>
+                    </div>
+                </div>
+                <div class="mt-16 text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="productDevTitle">產品發展與創新</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="productDevDescription">Figma 持續創新，不斷推出新功能和產品線，以滿足不斷變化的設計需求。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="devModeTitle">Dev Mode (開發者模式) 🧑‍💻</h3>
+                        <p class="mt-2 text-gray-600" id="devModeDesc">Figma 推出專為開發者設計的新空間，彌合設計與開發之間的鴻溝。開發者可直接在設計文件中獲取設計資訊、程式碼片段、資產和規格，並與 Jira、GitHub、Storybook 等工具整合，提升協作效率。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="figmaSitesTitle">Figma Sites (網站建構器) 🌐</h3>
+                        <p class="mt-2 text-gray-600" id="figmaSitesDesc">Figma Config 2025 大會上發布的 Beta 功能，允許設計師直接將設計發布到網頁，並支援自定義域名，提供 AI 驅動的網站和網頁應用建構器，具備 CMS 功能。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="figmaMakeTitle">Figma Make (AI 原型與程式碼生成) 🤖</h3>
+                        <p class="mt-2 text-gray-600" id="figmaMakeDesc">AI 驅動的提示轉原型工具，由 Anthropic 的 Claude 3.7 模型提供支援，旨在透過對話式介面彌合靜態設計與功能性 UI 之間的差距，加速設計到程式碼的轉換。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="variablesTitle">變量 (Variables) &amp; 高級原型 ⚙️</h3>
+                        <p class="mt-2 text-gray-600" id="variablesDesc">引入變量功能，讓設計師能更高效地管理和應用設計系統中的數值，並增強原型功能，實現更複雜的交互和動畫，提升用戶體驗。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="autoLayoutTitle">自動佈局 (Auto Layout) 改進 📏</h3>
+                        <p class="mt-2 text-gray-600" id="autoLayoutDesc">改進了自動佈局功能，新增 Wrap 選項以及最小/最大寬高設置，使設計元素能夠像文本一樣根據父框架大小流動，更輕鬆地創建響應式佈局。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="designSystemTitle">設計系統能力 🎨</h3>
+                        <p class="mt-2 text-gray-600" id="designSystemDesc">Figma 支援創建和管理設計系統，允許設計師創建可重用的組件、樣式和資產，並通過共享庫確保設計一致性，簡化設計流程並提高維護效率。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="business" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="businessSectionTitle">商業模式：病毒式傳播的藝術</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="businessSectionDescription">巧妙的 SaaS 訂閱和定價策略，結合產品自帶的病毒傳播效應，實現了低成本、高效率的客戶獲取。</p>
+                </div>
+                <div class="max-w-4xl mx-auto bg-gray-50 p-8 rounded-xl shadow-md">
+                    <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8 text-center">
+                        <div class="flex-1">
+                            <div class="text-4xl">👤</div>
+                            <h4 class="mt-2 text-lg font-semibold" id="businessFlow1Title">個人用戶</h4>
+                            <p class="text-gray-600" id="businessFlow1Desc">免費版吸引大量個人設計師使用</p>
+                        </div>
+                        <div class="text-2xl text-amber-500 font-bold">→</div>
+                        <div class="flex-1">
+                            <div class="text-4xl">👥</div>
+                            <h4 class="mt-2 text-lg font-semibold" id="businessFlow2Title">團隊協作</h4>
+                            <p class="text-gray-600" id="businessFlow2Desc">設計師將 Figma 帶入團隊，引發協作需求</p>
+                        </div>
+                        <div class="text-2xl text-amber-500 font-bold">→</div>
+                        <div class="flex-1">
+                            <div class="text-4xl">🏢</div>
+                            <h4 class="mt-2 text-lg font-semibold" id="businessFlow3Title">企業採用</h4>
+                            <p class="text-gray-600" id="businessFlow3Desc">整個公司轉用 Figma，成為付費企業客戶</p>
+                        </div>
+                    </div>
+                    <p class="mt-8 text-center text-gray-700 font-medium" id="businessFlowSummary">這種「自下而上」的傳播方式，極大地降低了營銷成本，形成了強大的增長飛輪。</p>
+                    <p class="mt-4 text-center text-gray-700 text-sm" id="businessUserStats">Figma 月活躍用戶超過 1300 萬，其中只有約三分之一是設計師，這表明其用戶群體廣泛。截至 3 月 31 日，約 85% 的月活躍用戶來自美國以外地區，這顯示了其強大的國際影響力，儘管目前 53% 的收入來自海外市場。值得一提的是，2020 年疫情和居家辦公的推動下，Figma 的用戶量在該年增長了 4 倍。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="financials" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="financialsSectionTitle">財務表現：驚人的增長曲線</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="financialsSectionDescription">Figma 的財務數據在整個 SaaS 行業中都極為罕見，展現出頂級的增長質量和盈利潛力。今年第一季度，其營收同比增長 46%，從去年同期的 1.562 億美元增至 2.282 億美元；淨利潤則從 1350 萬美元增至 4490 萬美元。</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-center mb-4" id="revenueChartTitle">年收入增長 (百萬美元)</h3>
+                        <div class="chart-container">
+                            <canvas id="revenueChart" height="700" style="display: block; box-sizing: border-box; height: 350px; width: 464px;" width="928"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-center mb-4" id="customerChartTitle">大客戶增長 (年收入&gt;10萬美元)</h3>
+                         <div class="chart-container">
+                            <canvas id="customerChart" height="700" style="display: block; box-sizing: border-box; height: 350px; width: 464px;" width="928"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                    <div class="card p-6 rounded-lg text-center">
+                        <p class="text-4xl font-bold text-amber-600">88.3%</p>
+                        <p class="mt-2 text-lg font-medium text-gray-700" id="grossMarginTitle">毛利率</p>
+                        <p class="text-gray-600" id="grossMarginDesc">行業天花板級別，規模效應顯著。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg text-center">
+                        <p class="text-4xl font-bold text-amber-600">132%</p>
+                        <p class="mt-2 text-lg font-medium text-gray-700" id="nrrTitle">淨收入留存率 (NRR)</p>
+                        <p class="text-gray-600" id="nrrDesc">現有客戶不僅不流失，還在增加消費。</p>
+                    </div>
+                </div>
+                <p class="mt-8 text-center text-gray-700 text-sm max-w-2xl mx-auto" id="financialsCustomerStats">截至今年 3 月 31 日，Figma 擁有約 45 萬企業客戶，其中貢獻年收入超過 10 萬美元的客戶數量達到 1031 家，同比增長 47%。其客戶名單包括多領國、Mercado Libre、奈福、Stripe 等知名企業。</p>
+            </div>
+        </section>
+        
+        <section id="market" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="marketSectionTitle">市場與競爭：新時代的王者</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="marketSectionDescription">在設計工具的代際更迭中，Figma 憑藉其核心優勢，迅速佔領市場，成為雲協作時代的領導者。</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+                    <div class="lg:col-span-3">
+                        <h3 class="text-2xl font-semibold text-center mb-4" id="marketShareChartTitle">UI 設計工具市場份額變化</h3>
+                        <div class="chart-container">
+                            <canvas id="marketShareChart" height="700" style="display: block; box-sizing: border-box; height: 350px; width: 566px;" width="1132"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <h3 class="text-2xl font-semibold mb-4" id="coreAdvantagesTitle">核心競爭優勢</h3>
+                        <ul class="space-y-4">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✔</span>
+                                <div id="coreAdvantage1"><strong>實時協作：</strong>Figma 的核心護城河，短期內無可匹敵。</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✔</span>
+                                <div id="coreAdvantage2"><strong>跨平台支持：</strong>基於 Web，解決了企業內部多操作系統的痛點。</div>
+                            </li>
+                             <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✔</span>
+                                <div id="coreAdvantage3"><strong>版本控制：</strong>內置強大的版本控制系統，類似程式碼管理。</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✔</span>
+                                <div id="coreAdvantage4"><strong>學習曲線平緩：</strong>新用戶易於上手，有利於快速傳播。</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-16 text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="userGrowthTitle">用戶增長與市場滲透</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="userGrowthDescription">Figma 的用戶基礎持續擴大，並在不同用戶群體和地區展現出強勁的滲透力。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="totalUsersTitle">總用戶數與活躍度 📊</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="totalUsersPoint1">截至 2025 年，Figma 用戶數已超過 1000 萬。</li>
+                            <li id="totalUsersPoint2">75% 的產品設計師將 Figma 視為其主要的 UI 設計軟體 (2023 年數據)。</li>
+                            <li id="totalUsersPoint3">月活躍用戶 (MAU) 超過 1300 萬，其中約三分之一是設計師。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="userDemographicsTitle">用戶畫像與公司規模 🧑‍💼</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="userDemographicsPoint1">65% 的用戶年齡在 35 歲以下，顯示對年輕專業人士的強大吸引力。</li>
+                            <li id="userDemographicsPoint2">44% 的用戶來自員工少於 50 人的公司，顯示在中小企業市場的強大滲透。</li>
+                            <li id="userDemographicsPoint3">中型企業 (100-999 名員工) 佔 42%，大型企業佔 13%。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="internationalReachTitle">國際化影響力 🌍</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="internationalReachPoint1">截至 2024 年 4 月，美國佔 Figma 客戶基礎的 38%。</li>
+                            <li id="internationalReachPoint2">然而，約 89% 的每週活躍用戶位於美國以外地區，表明其在全球範圍內的顯著採用。</li>
+                            <li id="internationalReachPoint3">Figma 在超過 150 個國家和地區擁有用戶。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="aiSectionTitle">AI 戰略：佈局未來</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="aiSectionDescription">Figma 正積極擁抱 AI，旨在讓 AI 成為設計流程的核心，從而改變設計師的角色，鞏固其未來地位。</p>
+                </div>
+                <p class="text-center text-gray-700 mb-8 max-w-3xl mx-auto" id="aiIntroText">Figma 在招股書中提到了 150 次 AI，這表明其對 AI 的重視程度。紐約對沖基金 Amont Partners 管理合夥人認為：「AI 最好的應用，在目前看來就是跟創意工作（creative work）或者市場營銷（marketing）相關的，那其實都是 Figma 的應用場景。」</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="aiCard1Title">🤖 已推出的 AI 功能</h3>
+                        <p class="text-gray-600" id="aiCard1Desc">集成 GPT 和 Gemini 模型，推出 AI 圖像生成、智能文本、自動圖層命名、視覺搜索等先進功能。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="aiCard2Title">🎯 未來戰略方向</h3>
+                        <p class="text-gray-600" id="aiCard2Desc">深化 AI 應用，拓展產品線至更多設計領域，加強企業級功能，並積極進行國際化擴張，特別是亞洲市場。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2" id="aiCard3Title">💡 行業轉變</h3>
+                        <p class="mt-2 text-gray-600" id="aiCard3Desc">在 AI 時代，設計師的角色將從執行者轉變為創意指導者。Figma 的雲平台架構使其在這一轉變中處於極其有利的位置。</p>
+                    </div>
+                    <div class="card p-6 rounded-lg md:col-span-2 lg:col-span-3 bg-yellow-50/50">
+                        <h3 class="text-xl font-semibold text-yellow-700 mb-2" id="aiWarningTitle">對盈利的短期影響 ⚠️</h3>
+                        <p class="text-gray-600" id="aiWarningDesc">Figma 在招股書中承認：「短期內，AI 投資將會壓縮我們的毛利率和運營利潤率……其最終對公司業務和財務狀況的影響目前仍無法確定。」這表明公司對 AI 投入的謹慎態度和潛在的財務影響。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="swot" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="swotSectionTitle">戰略分析：SWOT</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="swotSectionDescription">透過 SWOT 分析，全面評估 Figma 的內部優勢與劣勢，以及外部機會與威脅，洞察其戰略地位。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card p-6 rounded-lg bg-green-50/50">
+                        <h3 class="text-2xl font-semibold text-green-700 mb-4" id="swotStrengthsTitle">優勢 (Strengths) 💪</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li id="swotStrength1"><strong>市場領導地位：</strong>在雲端設計協作領域佔據主導，擁有龐大用戶群和企業客戶。</li>
+                            <li id="swotStrength2"><strong>強大網絡效應：</strong>產品自帶病毒式傳播，形成高轉換成本和客戶黏性。</li>
+                            <li id="swotStrength3"><strong>卓越技術架構：</strong>雲端原生、實時協作、WebAssembly優化，性能領先。</li>
+                            <li id="swotStrength4"><strong>健康財務表現：</strong>高增長、高毛利率、淨收入留存率高，盈利能力強勁。</li>
+                            <li id="swotStrength5"><strong>活躍插件生態：</strong>豐富的第三方插件擴展功能，增強用戶體驗。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-2xl font-semibold text-red-700 mb-4" id="swotWeaknessesTitle">劣勢 (Weaknesses) 📉</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li id="swotWeakness1"><strong>對AI顛覆的潛在依賴：</strong>AI可能降低對傳統設計工具的依賴，需持續領先。</li>
+                            <li id="swotWeakness2"><strong>加密貨幣投資風險：</strong>持有比特幣ETF，面臨數字資產市場波動風險。</li>
+                            <li id="swotWeakness3"><strong>管理層控制權集中：</strong>雙重股權結構導致普通股東在重大決策上影響力有限。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-blue-50/50">
+                        <h3 class="text-2xl font-semibold text-blue-700 mb-4" id="swotOpportunitiesTitle">機會 (Opportunities) ✨</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li id="swotOpportunity1"><strong>AI深度整合與創新：</strong>將AI融入設計流程核心，引領行業智能化轉型。</li>
+                            <li id="swotOpportunity2"><strong>拓展產品線與市場：</strong>從UI設計拓展至更多設計領域，擴大潛在市場。</li>
+                            <li id="swotOpportunity3"><strong>企業級功能強化：</strong>提升大客戶黏性，進一步鞏固企業市場地位。</li>
+                            <li id="swotOpportunity4"><strong>國際化擴張：</strong>特別是亞洲市場的巨大潛力，帶來新的增長點。</li>
+                            <li id="swotOpportunity5"><strong>設計師角色轉變：</strong>從執行者到創意指導者，Figma處於有利位置。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-yellow-50/50">
+                        <h3 class="text-2xl font-semibold text-yellow-700 mb-4" id="swotThreatsTitle">威脅 (Threats) ⚠️</h3>
+                        <ul class="space-y-3 text-gray-700">
+                            <li id="swotThreat1"><strong>新興AI工具競爭：</strong>更具顛覆性的AI原生設計工具可能挑戰其市場地位。</li>
+                            <li id="swotThreat2"><strong>宏觀經濟不確定性：</strong>全球經濟下行可能影響企業IT支出。</li>
+                            <li id="swotThreat3"><strong>人才獲取挑戰：</strong>限制性移民政策可能影響頂尖人才的吸引和保留。</li>
+                            <li id="swotThreat4"><strong>監管審查風險：</strong>未來任何重大戰略舉措仍可能面臨嚴格監管。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="risks" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="risksSectionTitle">投資風險：潛在的「熊市」因素</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="risksSectionDescription">儘管 Figma 表現強勁，但投資者仍需審慎評估其面臨的各類風險，以做出明智的投資決策。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk1Title">估值過高風險 📈</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk1Point1">Figma 預期市銷率較高，若未來營收增長不及預期（例如低於 50%），其估值可能面臨大幅調整。</li>
+                            <li id="risk1Point2">市場情緒惡化或科技股整體回調，可能導致高估值股票承受更大壓力。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk2Title">AI 技術的雙刃劍 🤖</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk2Point1">Figma 承認 AI 工具可能降低客戶對其平台的依賴，若 AI 發展速度超出其適應能力，或出現更具顛覆性的 AI 原生設計工具，其市場地位可能受到挑戰。</li>
+                            <li id="risk2Point2">持續的 AI 研發投入巨大，若無法有效變現，可能影響盈利能力。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk3Title">宏觀經濟與地緣政治風險 🌍</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk3Point1">全球經濟下行、貿易緊張或地緣政治風險可能導致企業削減 IT 支出，進而影響 Figma 的國際收入增長。</li>
+                            <li id="risk3Point2">作為一家高度國際化的公司，其收入流容易受到匯率波動的影響。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk4Title">人才獲取與監管挑戰 🧑‍💻</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk4Point1">限制性移民政策可能影響頂尖人才的吸引和保留，進而影響其研發能力和產品競爭力。</li>
+                            <li id="risk4Point2">全球範圍內對科技巨頭的監管審查日益嚴格，未來任何重大戰略舉措仍可能面臨嚴格監管。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk5Title">加密貨幣投資風險 ₿</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk5Point1">Figma 董事會已批准向 Bitwise 比特幣交易所交易基金投資 5500 萬美元，截至 3 月 31 日，該投資價值 6950 萬美元。</li>
+                            <li id="risk5Point2">5 月，董事會批准額外 3000 萬美元的比特幣投資，並將資金投入 USD Coin 穩定幣。</li>
+                            <li id="risk5Point3">Figma 在招股書中披露已獲授權發行「區塊鏈普通股」，以基於區塊鏈的代幣形式存在，但目前並無發行此類股票的計劃。</li>
+                            <li id="risk5Point4">這些投資使得公司資產面臨數字資產市場固有的高波動性風險和監管不確定性。</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg bg-red-50/50">
+                        <h3 class="text-xl font-semibold text-red-700 mb-2" id="risk6Title">管理層控制權集中 👑</h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li id="risk6Point1">Figma 採用雙重股權結構，IPO 後聯合創始人兼 CEO Dylan Field 將控制公司 73.6% 的投票權。這意味著普通股東在公司重大決策上的影響力有限。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai-stocks" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="aiStocksSectionTitle">AI 軟體股概覽：Figma 能否帶飛同行？</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="aiStocksSectionDescription">Figma 的上市備受關注，市場預計其表現可能刺激 AI 應用軟體股再度走高。以下是美股市場上值得關注的 AI 軟體股分類。</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory1Title">AI + 設計 🎨</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Figma (FIG.US)</li>
+                            <li>Adobe (ADBE.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory2Title">AI + 國防 🛡️</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Palantir (PLTR.US)</li>
+                            <li>BigBear.ai Holdings (BBAI.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory3Title">AI + 廣告 📊</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Applovin (APP.US)</li>
+                            <li>Meta Platforms (META.US)</li>
+                            <li>谷歌-A (GOOGL.US)</li>
+                            <li>Twilio (TWLO.US)</li>
+                            <li>The Trade Desk (TTD.US)</li>
+                            <li>Digital Turbine (APPS.US)</li>
+                            <li>Klaviyo (KVYO.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory4Title">AI + 大數據 📈</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Snowflake (SNOW.US)</li>
+                            <li>MongoDB (MDB.US)</li>
+                            <li>Confluent (CFLT.US)</li>
+                            <li>甲骨文 (ORCL.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory5Title">AI + 安全 🔒</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Palo Alto Networks (PANW.US)</li>
+                            <li>CrowdStrike (CRWD.US)</li>
+                            <li>飛塔信息 (FTNT.US)</li>
+                            <li>Datadog (DDOG.US)</li>
+                            <li>Cloudflare (NET.US)</li>
+                            <li>Rubrik (RBRK.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory6Title">AI + 企業服務 💼</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li>Zoom通訊 (ZM.US)</li>
+                            <li>UiPath (PATH.US)</li>
+                            <li>Workday (WDAY.US)</li>
+                            <li>賽富時 (CRM.US)</li>
+                            <li>monday.com (MNDY.US)</li>
+                            <li>SAP SE (SAP.US)</li>
+                            <li>C3.ai (AI.US)</li>
+                            <li>HubSpot (HUBS.US)</li>
+                            <li>Gitlab (GTLB.US)</li>
+                            <li>Atlassian (TEAM.US)</li>
+                            <li>阿莎娜 (ASAN.US)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3" id="aiCategory7Title">其他 AI 應用 🌐</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-1">
+                            <li id="aiCategory7Item1"><strong>AI+車隊管理：</strong> Samsara (IOT.US)</li>
+                            <li id="aiCategory7Item2"><strong>AI+搜索：</strong> Elastic (ESTC.US)</li>
+                            <li id="aiCategory7Item3"><strong>AI+辦公：</strong> Freshworks (FRSH.US)</li>
+                            <li id="aiCategory7Item4"><strong>AI+教育：</strong> 多鄰國 (DUOL.US)</li>
+                            <li id="aiCategory7Item5"><strong>AI+電商：</strong> Shopify (SHOP.US), 亞馬遜 (AMZN.US)</li>
+                            <li id="aiCategory7Item6"><strong>AI+金融：</strong> 財捷 (INTU.US), Intapp (INTA.US)</li>
+                            <li id="aiCategory7Item7"><strong>AI+數據工程：：</strong> Innodata (INOD.US)</li>
+                            <li id="aiCategory7Item8"><strong>AI+語音：：</strong> SoundHound AI (SOUN.US)</li>
+                            <li id="aiCategory7Item9"><strong>AI+醫療：：</strong> Tempus AI (TEM.US), Doximity (DOCS.US)</li>
+                            <li id="aiCategory7Item10"><strong>AI+社交：：</strong> Reddit (RDDT.US), Life360 (LIF.US)</li>
+                            <li id="aiCategory7Item11"><strong>AI+網站：：</strong> GoDaddy (GDDY.US)</li>
+                            <li id="aiCategory7Item12"><strong>AI+遊戲：：</strong> Unity Software (U.US)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="valuation" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800" id="valuationSectionTitle">投資價值分析</h2>
+                    <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto" id="valuationSectionDescription">Figma 的估值是否合理？與其他 SaaS 巨頭相比，它的投資潛力如何？</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-center mb-4" id="psRatioChartTitle">市銷率 (P/S) 對比</h3>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="psRatioChart" height="600" style="display: block; box-sizing: border-box; height: 300px; width: 464px;" width="928"></canvas>
+                        </div>
+                        <p class="text-center text-sm text-gray-500 mt-2" id="psRatioChartNote">註：市銷率基於約 200 億美元估值計算。</p>
+                    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800" id="valuationLevelTitle">估值水平</h4>
+                            <p class="mt-2 text-gray-600" id="valuationLevelDesc">若以 200 億美元估值上市，對應 2024 年收入的市銷率約為 27 倍。考慮到 Figma 48% 的高增長率，遠超 Salesforce (11%) 和 Zoom (3%)，其估值相對合理。</p>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-semibold text-gray-800" id="investorPerspectiveTitle">投資者視角</h4>
+                            <p class="mt-2 text-gray-600" id="investorPerspectiveDesc">Figma 是一家擁有強大護城河、高增長、高毛利和清晰盈利路徑的頂級 SaaS 公司。雖然估值不菲，但其在行業中的領導地位和未來潛力，使其成為一個極具吸引力的長期投資標的。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-6 text-center">
+            <h3 class="text-2xl font-bold" id="footerCallToAction">準備好迎接 Figma 的新時代了嗎？</h3>
+            <p class="mt-4 max-w-2xl mx-auto text-gray-300" id="footerMessage">Figma 的上市不僅是一家公司的里程碑，更可能預示著整個設計和軟體行業的未來方向。持續關注，見證歷史。</p>
+            <p class="mt-8 text-sm text-gray-500" id="disclaimer">本分析僅供參考，不構成任何投資建議。</p>
+            <p class="mt-2 text-sm text-gray-500" id="nixFrontierInfo">此報告由 NixFrontier 域鋒集團提供。</p>
+            <p class="mt-1 text-sm text-gray-500"><a href="https://www.NixFrontier.com" target="_blank" class="text-amber-400 hover:underline" id="nixFrontierWebsiteLink">歡迎瀏覽 www.NixFrontier.com</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // 由於只保留繁體中文，translations 物件現在直接包含繁體中文內容
+        const translations = {
+            'zh-TW': {
+                pageTitle: 'Figma IPO 深度投資分析',
+                navOverview: '公司概覽',
+                navTech: '產品技術',
+                navBusiness: '商業模式',
+                navFinancials: '財務表現',
+                navMarket: '市場競爭',
+                navAI: 'AI 戰略',
+                navSWOT: '戰略分析',
+                navRisks: '投資風險',
+                navAIStocks: 'AI 軟體股',
+                navValuation: '投資價值',
+                heroTitle: '深度剖析 Figma：設計界超級獨角獸的 IPO 之路',
+                heroDescription: '一家即將上市、改變全球設計行業格局的公司。從輟學創業到百億估值，Figma 的商業模式、技術優勢和未來潛力全方位解讀。',
+                heroCurrentValuation: '當前估值',
+                heroGrowthRate: '年複合增長率 (2019-2024)',
+                heroFortune500: '財富500強企業使用',
+                overviewSectionTitle: '公司概覽：從一個問題到行業顛覆者',
+                overviewSectionDescription: '兩位92後輟學生的遠見，解決了設計師長久以來的協作痛點，開啟了雲端設計的新紀元。',
+                overviewTimeline1Title: '一個想法的誕生',
+                overviewTimeline1Desc: '在布朗大學，Dylan Field 和 Evan Wallace 思考：為什麼設計師不能像程式設計師使用 Git 一樣進行高效協作？當時的設計師仍依賴單機軟體和郵件傳輸文件，效率低下且錯誤頻發。',
+                overviewTimeline2Title: '輟學創業',
+                overviewTimeline2Desc: 'Dylan Field 做出大膽決定，從布朗大學退學，專心將雲端協作設計工具的想法變為現實，他們意識到這是一個巨大的市場機會。',
+                overviewTimeline3Title: 'Figma 正式發布',
+                overviewTimeline3Desc: '經過四年精心打磨，Figma 1.0 正式上線。這是一個真正意義上的雲端原生設計工具，徹底改變了設計師的工作方式。',
+                overviewTimeline4Title: '即將 IPO',
+                overviewTimeline4Desc: '在 Adobe 200億美元收購案被監管阻止後，Figma 選擇獨立上市，有望成為史上估值最高的設計軟體公司，開啟新的篇章。',
+                ipoDetailsTitle: 'IPO 詳細資訊',
+                ipoDetailsDescription: 'Figma 首次公開募股的關鍵數據，幫助您全面了解本次上市的具體條款。有觀點稱，Figma 的上市可能會超過年初的雲計算平台 CoreWeave，成為 2025 年最大科技 IPO 的黑馬。',
+                ipoTableHeader1: '項目',
+                ipoTableHeader2: '詳細資訊',
+                ipoItem1: '股票代碼',
+                ipoItem2: '上市交易所',
+                ipoItem3: '擬定發行價格區間',
+                ipoItem4: '目標估值 (完全稀釋)',
+                ipoItem5: '發行股份總數',
+                ipoItem6: '公司出售股份',
+                ipoItem7: '現有股東出售股份',
+                ipoItem8: '預計募資總額',
+                ipoItem9: '預計上市日期',
+                ipoItem10: '主要承銷商',
+                majorShareholdersTitle: '主要股東與投資者信心',
+                majorShareholdersDescription: 'Figma 獲得了多家頂級風投機構的青睞，其豪華股東陣容彰顯了市場對其未來潛力的強大信心。',
+                auctionIPOTitle: '「拍賣式IPO」：市場定價的新嘗試',
+                auctionIPODescription: 'Figma 本次上市採用「拍賣式IPO」，旨在讓市場供需決定最終發行價格，這與傳統 IPO 有何不同？',
+                whatIsAuctionIPOTitle: '什麼是「拍賣式IPO」（荷蘭式拍賣）？',
+                whatIsAuctionIPODesc: '「拍賣式IPO」是一種首次公開發行股票（IPO）的定價方式，其核心思想是讓投資者透過公開競價來決定股票的最終發行價格，而非由投行主導。這種方式希望更準確地反映市場對股票價值的判斷，並可能減少抑價現象，使發行人和投資者都能受益。在這種模式下，公司值多少錢是由投資者自己決定的，而不是由投資銀行家來確定投資者可能願意為股票支付的價格。Figma 要求投資者提交限價訂單，正是為了獲取更精確的股票估值信息，捕捉更多隱藏的投資熱情。',
+                auctionIPOAadvantagesTitle: '優點 ✅',
+                auctionIPOAadvantages1: '<strong>更準確的定價：</strong>價格由市場供需決定，更接近股票的真實價值。',
+                auctionIPOAadvantages2: '<strong>減少抑價：</strong>有助於減少傳統IPO中可能存在的抑價現象，使公司能以更合理價格募集資金。',
+                auctionIPOAadvantages3: '<strong>提高透明度：</strong>整個拍賣過程更加公開透明，減少了人為操縱的可能性。',
+                auctionIPOAadvantages4: '<strong>吸引長期投資者：</strong>有助於篩選出真正認可公司長期價值、願意出價的投資人。',
+                auctionIPODisadvantagesTitle: '缺點 ❌',
+                auctionIPODisadvantages1: '<strong>「贏家的詛咒」：</strong>當早先出價更高的投資者意識到他們可能計算錯誤或出價過高時，股票價格可能在上市後立即暴跌。',
+                auctionIPODisadvantages2: '<strong>市場接受度：</strong>相較傳統IPO，市場對拍賣式IPO的接受度和熟悉度可能較低。',
+                techSectionTitle: '產品與技術：Figma 的硬核實力',
+                techSectionDescription: '表面是設計工具，內核是複雜且創新的技術架構，這構成了 Figma 難以被超越的護城河。',
+                techCard1Title: '雲端原生協作',
+                techCard1Desc: '完全基於瀏覽器，無需安裝。採用 Operational Transformation 技術，實現了複雜圖形環境下的高難度實時協作。',
+                techCard2Title: '極致性能優化',
+                techCard2Desc: '利用 WebAssembly 處理複雜圖形運算，結合虛擬化技術處理大型文件，性能媲美甚至超越本地應用。',
+                techCard3Title: '全平台兼容',
+                techCard3Desc: '基於 Web 技術，天然支持 Windows, Mac, Linux 等所有主流操作系統，對企業用戶極具吸引力。',
+                techCard4Title: '強大插件生態',
+                techCard4Desc: '開放的插件系統，允許開發者擴展功能，形成了類似蘋果 App Store 的生態，極大提高了用戶粘性。',
+                productDevTitle: '產品發展與創新',
+                productDevDescription: 'Figma 持續創新，不斷推出新功能和產品線，以滿足不斷變化的設計需求。',
+                devModeTitle: 'Dev Mode (開發者模式) 🧑‍💻',
+                devModeDesc: 'Figma 推出專為開發者設計的新空間，彌合設計與開發之間的鴻溝。開發者可直接在設計文件中獲取設計資訊、程式碼片段、資產和規格，並與 Jira、GitHub、Storybook 等工具整合，提升協作效率。',
+                figmaSitesTitle: 'Figma Sites (網站建構器) 🌐',
+                figmaSitesDesc: 'Figma Config 2025 大會上發布的 Beta 功能，允許設計師直接將設計發布到網頁，並支援自定義域名，提供 AI 驅動的網站和網頁應用建構器，具備 CMS 功能。',
+                figmaMakeTitle: 'Figma Make (AI 原型與程式碼生成) 🤖',
+                figmaMakeDesc: 'AI 驅動的提示轉原型工具，由 Anthropic 的 Claude 3.7 模型提供支援，旨在透過對話式介面彌合靜態設計與功能性 UI 之間的差距，加速設計到程式碼的轉換。',
+                variablesTitle: '變量 (Variables) & 高級原型 ⚙️',
+                variablesDesc: '引入變量功能，讓設計師能更高效地管理和應用設計系統中的數值，並增強原型功能，實現更複雜的交互和動畫，提升用戶體驗。',
+                autoLayoutTitle: '自動佈局 (Auto Layout) 改進 📏',
+                autoLayoutDesc: '改進了自動佈局功能，新增 Wrap 選項以及最小/最大寬高設置，使設計元素能夠像文本一樣根據父框架大小流動，更輕鬆地創建響應式佈局。',
+                designSystemTitle: '設計系統能力 🎨',
+                designSystemDesc: 'Figma 支援創建和管理設計系統，允許設計師創建可重用的組件、樣式和資產，並通過共享庫確保設計一致性，簡化設計流程並提高維護效率。',
+                businessSectionTitle: '商業模式：病毒式傳播的藝術',
+                businessSectionDescription: '巧妙的 SaaS 訂閱和定價策略，結合產品自帶的病毒傳播效應，實現了低成本、高效率的客戶獲取。',
+                businessFlow1Title: '個人用戶',
+                businessFlow1Desc: '免費版吸引大量個人設計師使用',
+                businessFlow2Title: '團隊協作',
+                businessFlow2Desc: '設計師將 Figma 帶入團隊，引發協作需求',
+                businessFlow3Title: '企業採用',
+                businessFlow3Desc: '整個公司轉用 Figma，成為付費企業客戶',
+                businessFlowSummary: '這種「自下而上」的傳播方式，極大地降低了營銷成本，形成了強大的增長飛輪。',
+                businessUserStats: 'Figma 月活躍用戶超過 1300 萬，其中只有約三分之一是設計師，這表明其用戶群體廣泛。截至 3 月 31 日，約 85% 的月活躍用戶來自美國以外地區，這顯示了其強大的國際影響力，儘管目前 53% 的收入來自海外市場。值得一提的是，2020 年疫情和居家辦公的推動下，Figma 的用戶量在該年增長了 4 倍。',
+                financialsSectionTitle: '財務表現：驚人的增長曲線',
+                financialsSectionDescription: 'Figma 的財務數據在整個 SaaS 行業中都極為罕見，展現出頂級的增長質量和盈利潛力。今年第一季度，其營收同比增長 46%，從去年同期的 1.562 億美元增至 2.282 億美元；淨利潤則從 1350 萬美元增至 4490 萬美元。',
+                revenueChartTitle: '年收入增長 (百萬美元)',
+                customerChartTitle: '大客戶增長 (年收入>10萬美元)',
+                grossMarginTitle: '毛利率',
+                grossMarginDesc: '行業天花板級別，規模效應顯著。',
+                nrrTitle: '淨收入留存率 (NRR)',
+                nrrDesc: '現有客戶不僅不流失，還在增加消費。',
+                financialsCustomerStats: '截至今年 3 月 31 日，Figma 擁有約 45 萬企業客戶，其中貢獻年收入超過 10 萬美元的客戶數量達到 1031 家，同比增長 47%。其客戶名單包括多領國、Mercado Libre、奈福、Stripe 等知名企業。',
+                marketSectionTitle: '市場與競爭：新時代的王者',
+                marketSectionDescription: '在設計工具的代際更迭中，Figma 憑藉其核心優勢，迅速佔領市場，成為雲協作時代的領導者。',
+                marketShareChartTitle: 'UI 設計工具市場份額變化',
+                coreAdvantagesTitle: '核心競爭優勢',
+                coreAdvantage1: '<strong>實時協作：</strong>Figma 的核心護城河，短期內無可匹敵。',
+                coreAdvantage2: '<strong>跨平台支持：</strong>基於 Web，解決了企業內部多操作系統的痛點。',
+                coreAdvantage3: '<strong>版本控制：</strong>內置強大的版本控制系統，類似程式碼管理。',
+                coreAdvantage4: '<strong>學習曲線平緩：</strong>新用戶易於上手，有利於快速傳播。',
+                userGrowthTitle: '用戶增長與市場滲透',
+                userGrowthDescription: 'Figma 的用戶基礎持續擴大，並在不同用戶群體和地區展現出強勁的滲透力。',
+                totalUsersTitle: '總用戶數與活躍度 📊',
+                totalUsersPoint1: '截至 2025 年，Figma 用戶數已超過 1000 萬。',
+                totalUsersPoint2: '75% 的產品設計師將 Figma 視為其主要的 UI 設計軟體 (2023 年數據)。',
+                totalUsersPoint3: '月活躍用戶 (MAU) 超過 1300 萬，其中約三分之一是設計師。',
+                userDemographicsTitle: '用戶畫像與公司規模 🧑‍💼',
+                userDemographicsPoint1: '65% 的用戶年齡在 35 歲以下，顯示對年輕專業人士的強大吸引力。',
+                userDemographicsPoint2: '44% 的用戶來自員工少於 50 人的公司，顯示在中小企業市場的強大滲透。',
+                userDemographicsPoint3: '中型企業 (100-999 名員工) 佔 42%，大型企業佔 13%。',
+                internationalReachTitle: '國際化影響力 🌍',
+                internationalReachPoint1: '截至 2024 年 4 月，美國佔 Figma 客戶基礎的 38%。',
+                internationalReachPoint2: '然而，約 89% 的每週活躍用戶位於美國以外地區，表明其在全球範圍內的顯著採用。',
+                internationalReachPoint3: 'Figma 在超過 150 個國家和地區擁有用戶。',
+                aiSectionTitle: 'AI 戰略：佈局未來',
+                aiSectionDescription: 'Figma 正積極擁抱 AI，旨在讓 AI 成為設計流程的核心，從而改變設計師的角色，鞏固其未來地位。',
+                aiIntroText: 'Figma 在招股書中提到了 150 次 AI，這表明其對 AI 的重視程度。紐約對沖基金 Amont Partners 管理合夥人認為：「AI 最好的應用，在目前看來就是跟創意工作（creative work）或者市場營銷（marketing）相關的，那其實都是 Figma 的應用場景。」',
+                aiCard1Title: '🤖 已推出的 AI 功能',
+                aiCard1Desc: '集成 GPT 和 Gemini 模型，推出 AI 圖像生成、智能文本、自動圖層命名、視覺搜索等先進功能。',
+                aiCard2Title: '🎯 未來戰略方向',
+                aiCard2Desc: '深化 AI 應用，拓展產品線至更多設計領域，加強企業級功能，並積極進行國際化擴張，特別是亞洲市場。',
+                aiCard3Title: '💡 行業轉變',
+                aiCard3Desc: '在 AI 時代，設計師的角色將從執行者轉變為創意指導者。Figma 的雲平台架構使其在這一轉變中處於極其有利的位置。',
+                aiWarningTitle: '對盈利的短期影響 ⚠️',
+                aiWarningDesc: 'Figma 在招股書中承認：「短期內，AI 投資將會壓縮我們的毛利率和運營利潤率……其最終對公司業務和財務狀況的影響目前仍無法確定。」這表明公司對 AI 投入的謹慎態度和潛在的財務影響。',
+                swotSectionTitle: '戰略分析：SWOT',
+                swotSectionDescription: '透過 SWOT 分析，全面評估 Figma 的內部優勢與劣勢，以及外部機會與威脅，洞察其戰略地位。',
+                swotStrengthsTitle: '優勢 (Strengths) 💪',
+                swotStrength1: '<strong>市場領導地位：</strong>在雲端設計協作領域佔據主導，擁有龐大用戶群和企業客戶。',
+                swotStrength2: '<strong>強大網絡效應：</strong>產品自帶病毒式傳播，形成高轉換成本和客戶黏性。',
+                swotStrength3: '<strong>卓越技術架構：</strong>雲端原生、實時協作、WebAssembly優化，性能領先。',
+                swotStrength4: '<strong>健康財務表現：</strong>高增長、高毛利率、淨收入留存率高，盈利能力強勁。',
+                swotStrength5: '<strong>活躍插件生態：</strong>豐富的第三方插件擴展功能，增強用戶體驗。',
+                swotWeaknessesTitle: '劣勢 (Weaknesses) 📉',
+                swotWeakness1: '<strong>對AI顛覆的潛在依賴：</strong>AI可能降低對傳統設計工具的依賴，需持續領先。',
+                swotWeakness2: '<strong>加密貨幣投資風險：</strong>持有比特幣ETF，面臨數字資產市場波動風險。',
+                swotWeakness3: '<strong>管理層控制權集中：</strong>雙重股權結構導致普通股東在重大決策上影響力有限。',
+                swotOpportunitiesTitle: '機會 (Opportunities) ✨',
+                swotOpportunity1: '<strong>AI深度整合與創新：</strong>將AI融入設計流程核心，引領行業智能化轉型。',
+                swotOpportunity2: '<strong>拓展產品線與市場：</strong>從UI設計拓展至更多設計領域，擴大潛在市場。',
+                swotOpportunity3: '<strong>企業級功能強化：</strong>提升大客戶黏性，進一步鞏固企業市場地位。',
+                swotOpportunity4: '<strong>國際化擴張：</strong>特別是亞洲市場的巨大潛力，帶來新的增長點。',
+                swotOpportunity5: '<strong>設計師角色轉變：</strong>從執行者到創意指導者，Figma處於有利位置。',
+                swotThreatsTitle: '威脅 (Threats) ⚠️',
+                swotThreat1: '<strong>新興AI工具競爭：</strong>更具顛覆性的AI原生設計工具可能挑戰其市場地位。',
+                swotThreat2: '<strong>宏觀經濟不確定性：</strong>全球經濟下行可能影響企業IT支出。',
+                swotThreat3: '<strong>人才獲取挑戰：</strong>限制性移民政策可能影響頂尖人才的吸引和保留。',
+                swotThreat4: '<strong>監管審查風險：</strong>未來任何重大戰略舉措仍可能面臨嚴格監管。',
+                risksSectionTitle: '投資風險：潛在的「熊市」因素',
+                risksSectionDescription: '儘管 Figma 表現強勁，但投資者仍需審慎評估其面臨的各類風險，以做出明智的投資決策。',
+                risk1Title: '估值過高風險 📈',
+                risk1Point1: 'Figma 預期市銷率較高，若未來營收增長不及預期（例如低於 50%），其估值可能面臨大幅調整。',
+                risk1Point2: '市場情緒惡化或科技股整體回調，可能導致高估值股票承受更大壓力。',
+                risk2Title: 'AI 技術的雙刃劍 🤖',
+                risk2Point1: 'Figma 承認 AI 工具可能降低客戶對其平台的依賴，若 AI 發展速度超出其適應能力，或出現更具顛覆性的 AI 原生設計工具，其市場地位可能受到挑戰。',
+                risk2Point2: '持續的 AI 研發投入巨大，若無法有效變現，可能影響盈利能力。',
+                risk3Title: '宏觀經濟與地緣政治風險 🌍',
+                risk3Point1: '全球經濟下行、貿易緊張或地緣政治風險可能導致企業削減 IT 支出，進而影響 Figma 的國際收入增長。',
+                risk3Point2: '作為一家高度國際化的公司，其收入流容易受到匯率波動的影響。',
+                risk4Title: '人才獲取與監管挑戰 🧑‍💻',
+                risk4Point1: '限制性移民政策可能影響頂尖人才的吸引和保留，進而影響其研發能力和產品競爭力。',
+                risk4Point2: '全球範圍內對科技巨頭的監管審查日益嚴格，未來任何重大戰略舉措仍可能面臨嚴格監管。',
+                risk5Title: '加密貨幣投資風險 ₿',
+                risk5Point1: 'Figma 董事會已批准向 Bitwise 比特幣交易所交易基金投資 5500 萬美元，截至 3 月 31 日，該投資價值 6950 萬美元。',
+                risk5Point2: '5 月，董事會批准額外 3000 萬美元的比特幣投資，並將資金投入 USD Coin 穩定幣。',
+                risk5Point3: 'Figma 在招股書中披露已獲授權發行「區塊鏈普通股」，以基於區塊鏈的代幣形式存在，但目前並無發行此類股票的計劃。',
+                risk5Point4: '這些投資使得公司資產面臨數字資產市場固有的高波動性風險和監管不確定性。',
+                risk6Title: '管理層控制權集中 👑',
+                risk6Point1: 'Figma 採用雙重股權結構，IPO 後聯合創始人兼 CEO Dylan Field 將控制公司 73.6% 的投票權。這意味著普通股東在公司重大決策上的影響力有限。',
+                aiStocksSectionTitle: 'AI 軟體股概覽：Figma 能否帶飛同行？',
+                aiStocksSectionDescription: 'Figma 的上市備受關注，市場預計其表現可能刺激 AI 應用軟體股再度走高。以下是美股市場上值得關注的 AI 軟體股分類。',
+                aiCategory1Title: 'AI + 設計 🎨',
+                aiCategory2Title: 'AI + 國防 🛡️',
+                aiCategory3Title: 'AI + 廣告 📊',
+                aiCategory4Title: 'AI + 大數據 📈',
+                aiCategory5Title: 'AI + 安全 🔒',
+                aiCategory6Title: 'AI + 企業服務 💼',
+                aiCategory7Title: '其他 AI 應用 🌐',
+                aiCategory7Item1: '<strong>AI+車隊管理：</strong> Samsara (IOT.US)',
+                aiCategory7Item2: '<strong>AI+搜索：</strong> Elastic (ESTC.US)',
+                aiCategory7Item3: '<strong>AI+辦公：</strong> Freshworks (FRSH.US)',
+                aiCategory7Item4: '<strong>AI+教育：</strong> 多鄰國 (DUOL.US)',
+                aiCategory7Item5: '<strong>AI+電商：</strong> Shopify (SHOP.US), 亞馬遜 (AMZN.US)',
+                aiCategory7Item6: '<strong>AI+金融：</strong> 財捷 (INTU.US), Intapp (INTA.US)',
+                aiCategory7Item7: '<strong>AI+數據工程：：</strong> Innodata (INOD.US)',
+                aiCategory7Item8: '<strong>AI+語音：：</strong> SoundHound AI (SOUN.US)',
+                aiCategory7Item9: '<strong>AI+醫療：：</strong> Tempus AI (TEM.US), Doximity (DOCS.US)',
+                aiCategory7Item10: '<strong>AI+社交：：</strong> Reddit (RDDT.US), Life360 (LIF.US)',
+                aiCategory7Item11: '<strong>AI+網站：：</strong> GoDaddy (GDDY.US)',
+                aiCategory7Item12: '<strong>AI+遊戲：：</strong> Unity Software (U.US)',
+                valuationSectionTitle: '投資價值分析',
+                valuationSectionDescription: 'Figma 的估值是否合理？與其他 SaaS 巨頭相比，它的投資潛力如何？',
+                psRatioChartTitle: '市銷率 (P/S) 對比',
+                psRatioChartNote: '註：市銷率基於約 200 億美元估值計算。',
+                valuationLevelTitle: '估值水平',
+                valuationLevelDesc: '若以 200 億美元估值上市，對應 2024 年收入的市銷率約為 27 倍。考慮到 Figma 48% 的高增長率，遠超 Salesforce (11%) 和 Zoom (3%)，其估值相對合理。',
+                investorPerspectiveTitle: '投資者視角',
+                investorPerspectiveDesc: 'Figma 是一家擁有強大護城河、高增長、高毛利和清晰盈利路徑的頂級 SaaS 公司。雖然估值不菲，但其在行業中的領導地位和未來潛力，使其成為一個極具吸引力的長期投資標的。',
+                footerCallToAction: '準備好迎接 Figma 的新時代了嗎？',
+                footerMessage: 'Figma 的上市不僅是一家公司的里程碑，更可能預示著整個設計和軟體行業的未來方向。持續關注，見證歷史。',
+                disclaimer: '本分析僅供參考，不構成任何投資建議。',
+                nixFrontierInfo: '此報告由 NixFrontier 域鋒集團提供。',
+                nixFrontierWebsite: '歡迎瀏覽 www.NixFrontier.com'
+            }
+        };
+
+        // 將 currentLanguage 直接設定為 zh-TW
+        let currentLanguage = 'zh-TW'; 
+
+        // Function to update text content based on language
+        function updateContent(lang) {
+            // 由於只保留繁體中文，這個函數實際上只會在初始載入時執行一次
+            // 並且所有內容都直接從 translations['zh-TW'] 中獲取
+            document.getElementById('pageTitle').textContent = translations['zh-TW'].pageTitle;
+
+            // Update navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const key = link.dataset.langKey; // 這裡的 data-lang-key 已經被移除，但為了兼容性保留
+                const element = link; // 直接使用 link 元素
+                if (element) { // 檢查元素是否存在
+                    element.textContent = translations['zh-TW'][key || element.textContent]; // 如果沒有 data-lang-key，使用原始文本
+                }
+            });
+            document.querySelectorAll('#mobile-nav option').forEach(option => {
+                const key = option.dataset.langKey; // 這裡的 data-lang-key 已經被移除，但為了兼容性保留
+                if (translations['zh-TW'][key || option.textContent]) {
+                    option.textContent = translations['zh-TW'][key || option.textContent];
+                }
+            });
+
+            // Update hero section
+            document.getElementById('heroTitle').textContent = translations['zh-TW'].heroTitle;
+            document.getElementById('heroDescription').textContent = translations['zh-TW'].heroDescription;
+            document.getElementById('heroCurrentValuation').textContent = translations['zh-TW'].heroCurrentValuation;
+            document.getElementById('heroGrowthRate').textContent = translations['zh-TW'].heroGrowthRate;
+            document.getElementById('heroFortune500').textContent = translations['zh-TW'].heroFortune500;
+
+            // Update overview section
+            document.getElementById('overviewSectionTitle').textContent = translations['zh-TW'].overviewSectionTitle;
+            document.getElementById('overviewSectionDescription').textContent = translations['zh-TW'].overviewSectionDescription;
+            document.getElementById('overviewTimeline1Title').textContent = translations['zh-TW'].overviewTimeline1Title;
+            document.getElementById('overviewTimeline1Desc').textContent = translations['zh-TW'].overviewTimeline1Desc;
+            document.getElementById('overviewTimeline2Title').textContent = translations['zh-TW'].overviewTimeline2Title;
+            document.getElementById('overviewTimeline2Desc').textContent = translations['zh-TW'].overviewTimeline2Desc;
+            document.getElementById('overviewTimeline3Title').textContent = translations['zh-TW'].overviewTimeline3Title;
+            document.getElementById('overviewTimeline3Desc').textContent = translations['zh-TW'].overviewTimeline3Desc;
+            document.getElementById('overviewTimeline4Title').textContent = translations['zh-TW'].overviewTimeline4Title;
+            document.getElementById('overviewTimeline4Desc').textContent = translations['zh-TW'].overviewTimeline4Desc;
+
+            // Update IPO Details table
+            document.getElementById('ipoDetailsTitle').textContent = translations['zh-TW'].ipoDetailsTitle;
+            document.getElementById('ipoDetailsDescription').textContent = translations['zh-TW'].ipoDetailsDescription;
+            document.getElementById('ipoTableHeader1').textContent = translations['zh-TW'].ipoTableHeader1;
+            document.getElementById('ipoTableHeader2').textContent = translations['zh-TW'].ipoTableHeader2;
+            document.getElementById('ipoItem1').textContent = translations['zh-TW'].ipoItem1;
+            document.getElementById('ipoItem2').textContent = translations['zh-TW'].ipoItem2;
+            document.getElementById('ipoItem3').textContent = translations['zh-TW'].ipoItem3;
+            document.getElementById('ipoItem4').textContent = translations['zh-TW'].ipoItem4;
+            document.getElementById('ipoItem5').textContent = translations['zh-TW'].ipoItem5;
+            document.getElementById('ipoItem6').textContent = translations['zh-TW'].ipoItem6;
+            document.getElementById('ipoItem7').textContent = translations['zh-TW'].ipoItem7;
+            document.getElementById('ipoItem8').textContent = translations['zh-TW'].ipoItem8;
+            document.getElementById('ipoItem9').textContent = translations['zh-TW'].ipoItem9;
+            document.getElementById('ipoItem10').textContent = translations['zh-TW'].ipoItem10;
+
+            // Update Major Shareholders section
+            document.getElementById('majorShareholdersTitle').textContent = translations['zh-TW'].majorShareholdersTitle;
+            document.getElementById('majorShareholdersDescription').textContent = translations['zh-TW'].majorShareholdersDescription;
+
+
+            // Update Auction IPO section
+            document.getElementById('auctionIPOTitle').textContent = translations['zh-TW'].auctionIPOTitle;
+            document.getElementById('auctionIPODescription').textContent = translations['zh-TW'].auctionIPODescription;
+            document.getElementById('whatIsAuctionIPOTitle').textContent = translations['zh-TW'].whatIsAuctionIPOTitle;
+            document.getElementById('whatIsAuctionIPODesc').textContent = translations['zh-TW'].whatIsAuctionIPODesc;
+            document.getElementById('auctionIPOAadvantagesTitle').textContent = translations['zh-TW'].auctionIPOAadvantagesTitle;
+            document.getElementById('auctionIPOAadvantages1').innerHTML = translations['zh-TW'].auctionIPOAadvantages1;
+            document.getElementById('auctionIPOAadvantages2').innerHTML = translations['zh-TW'].auctionIPOAadvantages2;
+            document.getElementById('auctionIPOAadvantages3').innerHTML = translations['zh-TW'].auctionIPOAadvantages3;
+            document.getElementById('auctionIPOAadvantages4').innerHTML = translations['zh-TW'].auctionIPOAadvantages4;
+            document.getElementById('auctionIPODisadvantagesTitle').textContent = translations['zh-TW'].auctionIPODisadvantagesTitle;
+            document.getElementById('auctionIPODisadvantages1').innerHTML = translations['zh-TW'].auctionIPODisadvantages1;
+            document.getElementById('auctionIPODisadvantages2').innerHTML = translations['zh-TW'].auctionIPODisadvantages2;
+
+            // Update Tech section
+            document.getElementById('techSectionTitle').textContent = translations['zh-TW'].techSectionTitle;
+            document.getElementById('techSectionDescription').textContent = translations['zh-TW'].techSectionDescription;
+            document.getElementById('techCard1Title').textContent = translations['zh-TW'].techCard1Title;
+            document.getElementById('techCard1Desc').textContent = translations['zh-TW'].techCard1Desc;
+            document.getElementById('techCard2Title').textContent = translations['zh-TW'].techCard2Title;
+            document.getElementById('techCard2Desc').textContent = translations['zh-TW'].techCard2Desc;
+            document.getElementById('techCard3Title').textContent = translations['zh-TW'].techCard3Title;
+            document.getElementById('techCard3Desc').textContent = translations['zh-TW'].techCard3Desc;
+            document.getElementById('techCard4Title').textContent = translations['zh-TW'].techCard4Title;
+            document.getElementById('techCard4Desc').textContent = translations['zh-TW'].techCard4Desc;
+            document.getElementById('productDevTitle').textContent = translations['zh-TW'].productDevTitle;
+            document.getElementById('productDevDescription').textContent = translations['zh-TW'].productDevDescription;
+            document.getElementById('devModeTitle').textContent = translations['zh-TW'].devModeTitle;
+            document.getElementById('devModeDesc').textContent = translations['zh-TW'].devModeDesc;
+            document.getElementById('figmaSitesTitle').textContent = translations['zh-TW'].figmaSitesTitle;
+            document.getElementById('figmaSitesDesc').textContent = translations['zh-TW'].figmaSitesDesc;
+            document.getElementById('figmaMakeTitle').textContent = translations['zh-TW'].figmaMakeTitle;
+            document.getElementById('figmaMakeDesc').textContent = translations['zh-TW'].figmaMakeDesc;
+            document.getElementById('variablesTitle').textContent = translations['zh-TW'].variablesTitle;
+            document.getElementById('variablesDesc').textContent = translations['zh-TW'].variablesDesc;
+            document.getElementById('autoLayoutTitle').textContent = translations['zh-TW'].autoLayoutTitle;
+            document.getElementById('autoLayoutDesc').textContent = translations['zh-TW'].autoLayoutDesc;
+            document.getElementById('designSystemTitle').textContent = translations['zh-TW'].designSystemTitle;
+            document.getElementById('designSystemDesc').textContent = translations['zh-TW'].designSystemDesc;
+
+            // Update Business Model section
+            document.getElementById('businessSectionTitle').textContent = translations['zh-TW'].businessSectionTitle;
+            document.getElementById('businessSectionDescription').textContent = translations['zh-TW'].businessSectionDescription;
+            document.getElementById('businessFlow1Title').textContent = translations['zh-TW'].businessFlow1Title;
+            document.getElementById('businessFlow1Desc').textContent = translations['zh-TW'].businessFlow1Desc;
+            document.getElementById('businessFlow2Title').textContent = translations['zh-TW'].businessFlow2Title;
+            document.getElementById('businessFlow2Desc').textContent = translations['zh-TW'].businessFlow2Desc;
+            document.getElementById('businessFlow3Title').textContent = translations['zh-TW'].businessFlow3Title;
+            document.getElementById('businessFlow3Desc').textContent = translations['zh-TW'].businessFlow3Desc;
+            document.getElementById('businessFlowSummary').textContent = translations['zh-TW'].businessFlowSummary;
+            document.getElementById('businessUserStats').textContent = translations['zh-TW'].businessUserStats;
+
+            // Update Financials section
+            document.getElementById('financialsSectionTitle').textContent = translations['zh-TW'].financialsSectionTitle;
+            document.getElementById('financialsSectionDescription').textContent = translations['zh-TW'].financialsSectionDescription;
+            document.getElementById('revenueChartTitle').textContent = translations['zh-TW'].revenueChartTitle;
+            document.getElementById('customerChartTitle').textContent = translations['zh-TW'].customerChartTitle;
+            document.getElementById('grossMarginTitle').textContent = translations['zh-TW'].grossMarginTitle;
+            document.getElementById('grossMarginDesc').textContent = translations['zh-TW'].grossMarginDesc;
+            document.getElementById('nrrTitle').textContent = translations['zh-TW'].nrrTitle;
+            document.getElementById('nrrDesc').textContent = translations['zh-TW'].nrrDesc;
+            document.getElementById('financialsCustomerStats').textContent = translations['zh-TW'].financialsCustomerStats;
+
+            // Update Market & Competition section
+            document.getElementById('marketSectionTitle').textContent = translations['zh-TW'].marketSectionTitle;
+            document.getElementById('marketSectionDescription').textContent = translations['zh-TW'].marketSectionDescription;
+            document.getElementById('marketShareChartTitle').textContent = translations['zh-TW'].marketShareChartTitle;
+            document.getElementById('coreAdvantagesTitle').textContent = translations['zh-TW'].coreAdvantagesTitle;
+            document.getElementById('coreAdvantage1').innerHTML = translations['zh-TW'].coreAdvantage1;
+            document.getElementById('coreAdvantage2').innerHTML = translations['zh-TW'].coreAdvantage2;
+            document.getElementById('coreAdvantage3').innerHTML = translations['zh-TW'].coreAdvantage3;
+            document.getElementById('coreAdvantage4').innerHTML = translations['zh-TW'].coreAdvantage4;
+            document.getElementById('userGrowthTitle').textContent = translations['zh-TW'].userGrowthTitle;
+            document.getElementById('userGrowthDescription').textContent = translations['zh-TW'].userGrowthDescription;
+            document.getElementById('totalUsersTitle').textContent = translations['zh-TW'].totalUsersTitle;
+            document.getElementById('totalUsersPoint1').textContent = translations['zh-TW'].totalUsersPoint1;
+            document.getElementById('totalUsersPoint2').textContent = translations['zh-TW'].totalUsersPoint2;
+            document.getElementById('totalUsersPoint3').textContent = translations['zh-TW'].totalUsersPoint3;
+            document.getElementById('userDemographicsTitle').textContent = translations['zh-TW'].userDemographicsTitle;
+            document.getElementById('userDemographicsPoint1').textContent = translations['zh-TW'].userDemographicsPoint1;
+            document.getElementById('userDemographicsPoint2').textContent = translations['zh-TW'].userDemographicsPoint2;
+            document.getElementById('userDemographicsPoint3').textContent = translations['zh-TW'].userDemographicsPoint3;
+            document.getElementById('internationalReachTitle').textContent = translations['zh-TW'].internationalReachTitle;
+            document.getElementById('internationalReachPoint1').textContent = translations['zh-TW'].internationalReachPoint1;
+            document.getElementById('internationalReachPoint2').textContent = translations['zh-TW'].internationalReachPoint2;
+            document.getElementById('internationalReachPoint3').textContent = translations['zh-TW'].internationalReachPoint3;
+
+            // Update AI Strategy section
+            document.getElementById('aiSectionTitle').textContent = translations['zh-TW'].aiSectionTitle;
+            document.getElementById('aiSectionDescription').textContent = translations['zh-TW'].aiSectionDescription;
+            document.getElementById('aiIntroText').textContent = translations['zh-TW'].aiIntroText;
+            document.getElementById('aiCard1Title').textContent = translations['zh-TW'].aiCard1Title;
+            document.getElementById('aiCard1Desc').textContent = translations['zh-TW'].aiCard1Desc;
+            document.getElementById('aiCard2Title').textContent = translations['zh-TW'].aiCard2Title;
+            document.getElementById('aiCard2Desc').textContent = translations['zh-TW'].aiCard2Desc;
+            document.getElementById('aiCard3Title').textContent = translations['zh-TW'].aiCard3Title;
+            document.getElementById('aiCard3Desc').textContent = translations['zh-TW'].aiCard3Desc;
+            document.getElementById('aiWarningTitle').textContent = translations['zh-TW'].aiWarningTitle;
+            document.getElementById('aiWarningDesc').textContent = translations['zh-TW'].aiWarningDesc;
+
+            // Update SWOT section
+            document.getElementById('swotSectionTitle').textContent = translations['zh-TW'].swotSectionTitle;
+            document.getElementById('swotSectionDescription').textContent = translations['zh-TW'].swotSectionDescription;
+            document.getElementById('swotStrengthsTitle').textContent = translations['zh-TW'].swotStrengthsTitle;
+            document.getElementById('swotStrength1').innerHTML = translations['zh-TW'].swotStrength1;
+            document.getElementById('swotStrength2').innerHTML = translations['zh-TW'].swotStrength2;
+            document.getElementById('swotStrength3').innerHTML = translations['zh-TW'].swotStrength3;
+            document.getElementById('swotStrength4').innerHTML = translations['zh-TW'].swotStrength4;
+            document.getElementById('swotStrength5').innerHTML = translations['zh-TW'].swotStrength5;
+            document.getElementById('swotWeaknessesTitle').textContent = translations['zh-TW'].swotWeaknessesTitle;
+            document.getElementById('swotWeakness1').innerHTML = translations['zh-TW'].swotWeakness1;
+            document.getElementById('swotWeakness2').innerHTML = translations['zh-TW'].swotWeakness2;
+            document.getElementById('swotWeakness3').innerHTML = translations['zh-TW'].swotWeakness3;
+            document.getElementById('swotOpportunitiesTitle').textContent = translations['zh-TW'].swotOpportunitiesTitle;
+            document.getElementById('swotOpportunity1').innerHTML = translations['zh-TW'].swotOpportunity1;
+            document.getElementById('swotOpportunity2').innerHTML = translations['zh-TW'].swotOpportunity2;
+            document.getElementById('swotOpportunity3').innerHTML = translations['zh-TW'].swotOpportunity3;
+            document.getElementById('swotOpportunity4').innerHTML = translations['zh-TW'].swotOpportunity4;
+            document.getElementById('swotOpportunity5').innerHTML = translations['zh-TW'].swotOpportunity5;
+            document.getElementById('swotThreatsTitle').textContent = translations['zh-TW'].swotThreatsTitle;
+            document.getElementById('swotThreat1').innerHTML = translations['zh-TW'].swotThreat1;
+            document.getElementById('swotThreat2').innerHTML = translations['zh-TW'].swotThreat2;
+            document.getElementById('swotThreat3').innerHTML = translations['zh-TW'].swotThreat3;
+            document.getElementById('swotThreat4').innerHTML = translations['zh-TW'].swotThreat4;
+
+            // Update Risks section
+            document.getElementById('risksSectionTitle').textContent = translations['zh-TW'].risksSectionTitle;
+            document.getElementById('risksSectionDescription').textContent = translations['zh-TW'].risksSectionDescription;
+            document.getElementById('risk1Title').textContent = translations['zh-TW'].risk1Title;
+            document.getElementById('risk1Point1').textContent = translations['zh-TW'].risk1Point1;
+            document.getElementById('risk1Point2').textContent = translations['zh-TW'].risk1Point2;
+            document.getElementById('risk2Title').textContent = translations['zh-TW'].risk2Title;
+            document.getElementById('risk2Point1').textContent = translations['zh-TW'].risk2Point1;
+            document.getElementById('risk2Point2').textContent = translations['zh-TW'].risk2Point2;
+            document.getElementById('risk3Title').textContent = translations['zh-TW'].risk3Title;
+            document.getElementById('risk3Point1').textContent = translations['zh-TW'].risk3Point1;
+            document.getElementById('risk3Point2').textContent = translations['zh-TW'].risk3Point2;
+            document.getElementById('risk4Title').textContent = translations['zh-TW'].risk4Title;
+            document.getElementById('risk4Point1').textContent = translations['zh-TW'].risk4Point1;
+            document.getElementById('risk4Point2').textContent = translations['zh-TW'].risk4Point2;
+            document.getElementById('risk5Title').textContent = translations['zh-TW'].risk5Title;
+            document.getElementById('risk5Point1').textContent = translations['zh-TW'].risk5Point1;
+            document.getElementById('risk5Point2').textContent = translations['zh-TW'].risk5Point2;
+            document.getElementById('risk5Point3').textContent = translations['zh-TW'].risk5Point3;
+            document.getElementById('risk5Point4').textContent = translations['zh-TW'].risk5Point4;
+            document.getElementById('risk6Title').textContent = translations['zh-TW'].risk6Title;
+            document.getElementById('risk6Point1').textContent = translations['zh-TW'].risk6Point1;
+
+            // Update AI Stocks section
+            document.getElementById('aiStocksSectionTitle').textContent = translations['zh-TW'].aiStocksSectionTitle;
+            document.getElementById('aiStocksSectionDescription').textContent = translations['zh-TW'].aiStocksSectionDescription;
+            document.getElementById('aiCategory1Title').textContent = translations['zh-TW'].aiCategory1Title;
+            document.getElementById('aiCategory2Title').textContent = translations['zh-TW'].aiCategory2Title;
+            document.getElementById('aiCategory3Title').textContent = translations['zh-TW'].aiCategory3Title;
+            document.getElementById('aiCategory4Title').textContent = translations['zh-TW'].aiCategory4Title;
+            document.getElementById('aiCategory5Title').textContent = translations['zh-TW'].aiCategory5Title;
+            document.getElementById('aiCategory6Title').textContent = translations['zh-TW'].aiCategory6Title;
+            document.getElementById('aiCategory7Title').textContent = translations['zh-TW'].aiCategory7Title;
+            document.getElementById('aiCategory7Item1').innerHTML = translations['zh-TW'].aiCategory7Item1;
+            document.getElementById('aiCategory7Item2').innerHTML = translations['zh-TW'].aiCategory7Item2;
+            document.getElementById('aiCategory7Item3').innerHTML = translations['zh-TW'].aiCategory7Item3;
+            document.getElementById('aiCategory7Item4').innerHTML = translations['zh-TW'].aiCategory7Item4;
+            document.getElementById('aiCategory7Item5').innerHTML = translations['zh-TW'].aiCategory7Item5;
+            document.getElementById('aiCategory7Item6').innerHTML = translations['zh-TW'].aiCategory7Item6;
+            document.getElementById('aiCategory7Item7').innerHTML = translations['zh-TW'].aiCategory7Item7;
+            document.getElementById('aiCategory7Item8').innerHTML = translations['zh-TW'].aiCategory7Item8;
+            document.getElementById('aiCategory7Item9').innerHTML = translations['zh-TW'].aiCategory7Item9;
+            document.getElementById('aiCategory7Item10').innerHTML = translations['zh-TW'].aiCategory7Item10;
+            document.getElementById('aiCategory7Item11').innerHTML = translations['zh-TW'].aiCategory7Item11;
+            document.getElementById('aiCategory7Item12').innerHTML = translations['zh-TW'].aiCategory7Item12;
+
+            // Update Valuation section
+            document.getElementById('valuationSectionTitle').textContent = translations['zh-TW'].valuationSectionTitle;
+            document.getElementById('valuationSectionDescription').textContent = translations['zh-TW'].valuationSectionDescription;
+            document.getElementById('psRatioChartTitle').textContent = translations['zh-TW'].psRatioChartTitle;
+            document.getElementById('psRatioChartNote').textContent = translations['zh-TW'].psRatioChartNote;
+            document.getElementById('valuationLevelTitle').textContent = translations['zh-TW'].valuationLevelTitle;
+            document.getElementById('valuationLevelDesc').textContent = translations['zh-TW'].valuationLevelDesc;
+            document.getElementById('investorPerspectiveTitle').textContent = translations['zh-TW'].investorPerspectiveTitle;
+            document.getElementById('investorPerspectiveDesc').textContent = translations['zh-TW'].investorPerspectiveDesc;
+
+            // Update footer
+            document.getElementById('footerCallToAction').textContent = translations['zh-TW'].footerCallToAction;
+            document.getElementById('footerMessage').textContent = translations['zh-TW'].footerMessage;
+            document.getElementById('disclaimer').textContent = translations['zh-TW'].disclaimer;
+            document.getElementById('nixFrontierInfo').textContent = translations['zh-TW'].nixFrontierInfo;
+            document.getElementById('nixFrontierWebsiteLink').textContent = translations['zh-TW'].nixFrontierWebsite;
+
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const revenueData = {
+                labels: ['2019', '2020', '2024'],
+                datasets: [{
+                    label: '年收入 (百萬美元)',
+                    data: [4, 40, 749],
+                    backgroundColor: 'rgba(217, 119, 6, 0.7)',
+                    borderColor: 'rgba(217, 119, 6, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            };
+
+            const customerData = {
+                labels: ['2023年3月', '2024年3月'],
+                datasets: [{
+                    label: '大客戶數量',
+                    data: [701, 1031],
+                    fill: false,
+                    borderColor: 'rgb(2, 132, 199)',
+                    tension: 0.1
+                }]
+            };
+
+            const marketShareData = {
+                labels: ['Figma', 'Sketch'],
+                datasets: [{
+                    label: '2019',
+                    data: [10, 50],
+                    backgroundColor: 'rgba(217, 119, 6, 0.5)',
+                    borderColor: 'rgba(217, 119, 6, 1)',
+                    borderWidth: 1
+                }, {
+                    label: '2024',
+                    data: [35, 25],
+                    backgroundColor: 'rgba(2, 132, 199, 0.5)',
+                    borderColor: 'rgba(2, 132, 199, 1)',
+                    borderWidth: 1
+                }]
+            };
+            
+            const psRatioData = {
+                labels: ['Figma', 'Zoom', 'Salesforce'],
+                datasets: [{
+                    label: '市銷率 (P/S)',
+                    data: [27, 12, 8],
+                    backgroundColor: [
+                        'rgba(217, 119, 6, 0.7)',
+                        'rgba(2, 132, 199, 0.7)',
+                        'rgba(107, 114, 128, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(217, 119, 6, 1)',
+                        'rgba(2, 132, 199, 1)',
+                        'rgba(107, 114, 128, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            };
+            
+            const horizontalChartOptions = {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                     tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.x;
+                                const company = context.label;
+                                let growthRate = '';
+                                if (company === 'Figma') growthRate = ' (增長率 48%)';
+                                if (company === 'Zoom') growthRate = ' (增長率 3%)';
+                                if (company === 'Salesforce') growthRate = ' (增長率 11%)';
+                                return label + growthRate;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            };
+
+            new Chart(document.getElementById('revenueChart'), { type: 'bar', data: revenueData, options: chartOptions });
+            new Chart(document.getElementById('customerChart'), { type: 'line', data: customerData, options: chartOptions });
+            new Chart(document.getElementById('marketShareChart'), { type: 'bar', data: marketShareData, options: chartOptions });
+            new Chart(document.getElementById('psRatioChart'), { type: 'bar', data: psRatioData, options: horizontalChartOptions });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            function changeActiveLink() {
+                let index = sections.length;
+                while(--index && window.scrollY + 100 < sections[index].offsetTop) {}
+                
+                navLinks.forEach((link) => link.classList.remove('active'));
+                const currentSectionId = sections[index] ? sections[index].id : null;
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === `#${currentSectionId}`) {
+                        link.classList.add('active');
+                    }
+                });
+
+                if (currentSectionId) {
+                    mobileNav.value = `#${currentSectionId}`;
+                }
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+            
+            mobileNav.addEventListener('change', (e) => {
+                 document.querySelector(e.target.value).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+            });
+
+            // Set initial language on load (直接調用，因為沒有按鈕觸發)
+            updateContent(currentLanguage);
+
+            window.addEventListener('scroll', changeActiveLink);
+            changeActiveLink(); // Call on load to set initial active link
+
+            // Download HTML functionality
+            document.getElementById('downloadHtmlBtn').addEventListener('click', () => {
+                const htmlContent = document.documentElement.outerHTML; // Get the full HTML of the current page
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Figma_IPO_Report.html'; // Suggested filename
+                document.body.appendChild(a); // Append to body to make it clickable
+                a.click(); // Programmatically click the link
+                document.body.removeChild(a); // Remove the link
+                URL.revokeObjectURL(url); // Clean up the URL object
+            });
+        });
+    </script>
+
+
+</body></html>
